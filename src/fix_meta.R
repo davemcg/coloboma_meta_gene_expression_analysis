@@ -30,9 +30,10 @@ meta3 <- bind_rows(meta_corrected %>%
                      filter(Organism != 'Chick') %>%
                      mutate(Run = RawCore),
                    meta_chick) %>%
-  select(Run, Sample:Other) %>%
+  select(Run, CEL = RawFile, Sample:Other) %>%
   mutate(Run = case_when(!grepl('GSM', Run) ~ Run)) %>%
   mutate(Layout = case_when(Accession == 'GSE84916' ~ 'Single',
                             Accession == 'GSE159822' ~ 'Paired',
-                            grepl('MTAB', Accession) ~ 'Paired'))
+                            grepl('MTAB', Accession) ~ 'Paired')) %>%
+  mutate(CEL = case_when(grepl('CEL', CEL) ~ CEL))
 write_tsv(meta3, file = 'data/sample_info2.tsv')
