@@ -1,4 +1,7 @@
-library(affy); library(limma); library(mouse4302.db);library(oligo)
+#library(affy)
+#library(mouse4302.db)
+library(limma)
+library(oligo)
 library(biomaRt)
 library(tidyverse)
 ## set up biomart
@@ -20,7 +23,7 @@ gene_probe_table <- getBM(mart = ensembl_mart,
 exprs(HNorm) %>% head()
 
 sample_info <- read_tsv('data/sample_info.txt', col_names = FALSE)
-
+sample_info %>% DT::datatable()
 # PCA
 library(matrixStats)
 ntop = 1000
@@ -30,4 +33,16 @@ select <- order(Pvars, decreasing = TRUE)[seq_len(min(ntop,
 PCA <- prcomp(t(Pvars), scale = F)
 percentVar <- round(100*PCA$sdev^2/sum(PCA$sdev^2),1)
 
-PCA$x %>% as_tibble(rownames = 'X1') %>% mutate() %>% left_join(sample_info) %>% ggplot(aes(x=PC1,y=PC2, color  = X5)) + geom_point()
+PCA$x %>% as_tibble(rownames = 'X1') %>%
+  mutate() %>%
+  left_join(sample_info) %>%
+  ggplot(aes(x=PC1,y=PC2, color = X5)) +
+  geom_point(size=4)
+
+PCA$rotation %>%
+  as_tibble(rownames = "affy_mouse430_2") %>%
+  left_join(gene_probe_table) %>%
+  dplyr::select(affy_mouse430_2, PC1, PC2, PC3, PC4, ensembl_gene_id, mgi_symbol) %>%
+  arrange(-abs(PC2)) %>%
+  head(20)
+e
