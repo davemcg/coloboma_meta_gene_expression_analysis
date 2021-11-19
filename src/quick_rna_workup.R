@@ -289,7 +289,19 @@ plotter <- function(PCA, plot_title = NA){
   plot_grid(title, merge, ncol = 1, rel_heights = c(0.1,5))
 }
 
-plotter(PCA_log)
+system('mkdir -p analysis')
+pdf('analysis/PCA_noNorm.pdf', width = 12, height = 12)
+plotter(PCA_log, plot_title = 'No normalization')
+dev.off()
+
+pdf('analysis/PCA_rankNorm.pdf', width = 12, height = 12)
+plotter(PCA_rank, plot_title = 'Rank normalization')
+dev.off()
+
+pdf('analysis/PCA_qsmoothNorm.pdf', width = 12, height = 12)
+plotter(PCA_qsmooth, plot_title = 'qsmooth normalization')
+dev.off()
+
 
 
 PCA_qsmooth$rotation %>%
