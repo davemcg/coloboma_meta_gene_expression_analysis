@@ -9,7 +9,7 @@ library(apeglm)
 library(BiocParallel)
 library(matrixStats)
 library(cowplot)
-
+library(qsmooth)
 
 # OF Translational Time Points
 # Info		Human	Mouse	Chick	Zebrafish
@@ -98,8 +98,9 @@ row.names(same) <- same$Gene
 same <- same[,-1] %>% data.frame()
 same <- same[complete.cases(same),]
 
-#same_log <- log2(same + 1)
+same_log <- log2(same + 1)
 # add microarray
+load('data/microarray_table.Rdata')
 same_log <- same_log %>% as_tibble(rownames = 'Gene') %>%
   left_join(microarray_table %>% as_tibble(rownames = 'Gene') %>%
               mutate(Gene = toupper(Gene)))
@@ -128,6 +129,7 @@ qsmooth_batch <- same_log %>%
   left_join(sample_meta %>% dplyr::select(Sample, Accession, Fusion) %>% unique(),
             by = 'Sample') %>%
   pull(Accession)
+
 same_qsmooth <- qsmooth(same_log, group_factor = qsmooth_factors, batch = qsmooth_batch)
 #####################################################################################
 
@@ -287,7 +289,7 @@ plotter <- function(PCA, plot_title = NA){
   plot_grid(title, merge, ncol = 1, rel_heights = c(0.1,5))
 }
 
-
+plotter(PCA_log)
 
 
 PCA_qsmooth$rotation %>%
