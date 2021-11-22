@@ -17,7 +17,7 @@ library(qsmooth)
 # During Fusion	Fusion @ Single Point	CS16 (37)	E11.5	E6	48hpf
 # After Fusion	Completely Fused	CS18 (44)	E12.5	E7	56hpf
 
-register(MulticoreParam(6))
+register(MulticoreParam(2))
 #working_dir <- '/Volumes/ARC168/PROJECTS/hufnagel/macaque_fovea_RNA-seq/salmon_quant/'
 working_dir <- '~/data/coloboma_meta_gene_expression/salmon_quant/'
 files <- list.files(path=working_dir,recursive=TRUE,pattern='quant.sf', full.names = TRUE)
@@ -28,7 +28,7 @@ sample_meta <- read_tsv('data/sample_info2.tsv') %>%
                            Accession == 'GSE13103' ~ 'Brown - Brooks',
                            Accession == 'GSE159822' ~ 'Richardson - Moosajee',
                            Accession == 'GSE84916' ~ 'Hardy - Brooks'),
-         Technology = case_when(!is.na(Run) ~ 'Microarray', TRUE ~ 'RNA-Seq'),
+         Technology = case_when(is.na(Run) ~ 'Microarray', TRUE ~ 'RNA-Seq'),
          Fusion = case_when(Stage == 'CS17' ~ 'During',
                             Stage == 'CS18' ~ 'After',
                             Stage == 'E10.5' ~ 'Before',
@@ -84,8 +84,8 @@ rna_processor <- function(meta, organism, countsFromAbundance = 'no'){
   out
 }
 
-human <- rna_processor(sample_meta_rnaseq, 'Human', 'lengthScaledTPM')
-mouse <- rna_processor(sample_meta_rnaseq, 'Mouse', 'lengthScaledTPM')
+human <- rna_processor(sample_meta_rnaseq, 'Human', 'no')
+mouse <- rna_processor(sample_meta_rnaseq, 'Mouse', 'no')
 
 colnames(human$counts) <- human$meta$Sample %>% unique()
 colnames(mouse$counts) <- mouse$meta$Sample %>% unique()

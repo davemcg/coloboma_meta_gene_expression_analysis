@@ -20,7 +20,11 @@ d <- d_zed[-drop,]
 dim(d) # number of genes left
 
 
-mm <- model.matrix(~0 + d$samples$Fusion)
+mm <- model.matrix(~0 + d$samples$Fusion + d$samples$Organism)
 y <- voom(d, mm, plot = T)
 fit <- lmFit(y, mm)
 head(coef(fit))
+
+efit <- eBayes(fit)
+top.table <- topTable(efit, sort.by = "F", n = Inf)
+head(top.table, 20)
