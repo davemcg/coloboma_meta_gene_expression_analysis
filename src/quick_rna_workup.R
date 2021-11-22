@@ -145,9 +145,9 @@ run_PCA <- function(matrix, n_top_var = 2000){
   PCA
 }
 
-PCA_log <- run_PCA(same_log)
-PCA_rank <- run_PCA(same_rank_norm)
-PCA_qsmooth <- run_PCA(same_qsmooth@qsmoothData)
+PCA_log <- run_PCA(same_log, n_top_var = 2000)
+PCA_rank <- run_PCA(same_rank_norm, n_top_var = 2000)
+PCA_qsmooth <- run_PCA(same_qsmooth@qsmoothData, n_top_var = 2000)
 
 plotter <- function(PCA, plot_title = NA){
   title <- ggdraw() +
@@ -301,11 +301,4 @@ dev.off()
 pdf('analysis/PCA_qsmoothNorm.pdf', width = 12, height = 12)
 plotter(PCA_qsmooth, plot_title = 'qsmooth normalization')
 dev.off()
-
-
-
-PCA_qsmooth$rotation %>%
-  dplyr::select(, PC6 ensembl_gene_id, mgi_symbol) %>%
-  arrange(-abs(PC2)) %>%
-  head(20)
 
