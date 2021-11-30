@@ -1,5 +1,5 @@
 library(edgeR)
-ngs_counts <- same_qsmooth@qsmoothData
+ngs_counts <- qnorm_counts
 colnames(ngs_counts) <- colnames(ngs_counts) %>% gsub('_.*|.CEL.*','',.)
 #d_zed <- DGEList(ngs_counts)
 #d_zed <- calcNormFactors(d_zed)
@@ -14,7 +14,7 @@ row.names(colData) <- colData$Sample
 
 # d_zed$samples <- colData
 
-cutoff <- 2
+cutoff <- 5
 drop <- which(apply((ngs_counts), 1, max) < cutoff) #which(apply(cpm(d_zed), 1, max) < cutoff)
 d <- ngs_counts[-drop,]
 dim(d) # number of genes left
@@ -28,8 +28,8 @@ colData <- data.frame(colData)
 row.names(colData) <- colData$Sample
 
 
-mm <- model.matrix(~0 + colData$Fusion + colData$Organism)
-colnames(mm) <- c('After','Before','During','Organism')
+mm <- model.matrix(~0  + colData$Fusion + colData$Organism + colData$Technology)
+colnames(mm) <- c('After','Before','During', 'Mouse','Zebrafish', 'RNAseq')
 #y <- voom(d, mm, plot = T)
 fit <- lmFit(d_ofm, mm)
 contrast.matrix = makeContrasts(After-During, After-Before, During-Before, levels=mm)
@@ -50,14 +50,17 @@ head(top.table, 20)
 
 
 
-ngs_counts %>%
+qnorm_counts %>%
   as_tibble(rownames = 'Gene') %>%
   pivot_longer(-Gene, names_to = 'Sample', values_to = 'log2(Counts)') %>%
   filter(Sample %in% colData$Sample) %>%
-  left_join(colData) %>% filter(Gene %in% row.names(top.table %>% head(10))) %>%
+  left_join(sample_meta_D) %>%
+  filter(Gene %in% row.names(top.table %>% head(5))) %>%
+  #filter(Gene %in% c('MITF','NEUROG2')) %>%
   mutate(Fusion = factor(Fusion, levels = c('Before','During','After'))) %>%
   ggplot(aes(x=Fusion, y=`log2(Counts)`, color = Organism, shape = Technology)) +
-  geom_boxplot(aes(group = Fusion), color = 'Black') +
+  # geom_boxplot(aes(group = Fusion), color = 'Black', outlier.colour = NA) +
+  geom_boxplot(aes(group = interaction(Organism,Fusion)), outlier.colour = NA) +
   ggbeeswarm::geom_quasirandom(size = 3, alpha = 0.7) +
   cowplot::theme_cowplot() +
   facet_wrap(~Gene, scales = 'free_y') +

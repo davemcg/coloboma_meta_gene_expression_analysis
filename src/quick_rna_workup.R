@@ -99,9 +99,7 @@ human <- rna_processor(sample_meta_rnaseq, 'Human', 'lengthScaledTPM')
 mouse <- rna_processor(sample_meta_rnaseq, 'Mouse', 'lengthScaledTPM')
 zebrafish <- rna_processor(sample_meta_rnaseq, 'Zebrafish', 'lengthScaledTPM')
 
-# colnames(human$counts) <- human$meta$Sample %>% unique()
-# colnames(mouse$counts) <- mouse$meta$Sample %>% unique()
-
+# merge mouse and human data
 same <- human$counts %>% as_tibble(rownames = 'Gene') %>%
   left_join(mouse$counts %>% as_tibble(rownames = 'Gene') %>%
               mutate(Gene = toupper(Gene))) %>%
@@ -109,8 +107,27 @@ same <- human$counts %>% as_tibble(rownames = 'Gene') %>%
 row.names(same) <- same$Gene
 same <- same[,-1] %>% data.frame()
 same <- same[complete.cases(same),]
+# now merge in zebrafish data
+## grab human <-> zf gene table
+hcop <- read_tsv('data/human_zebrafish_hcop_fifteen_column.txt.gz')
+## collapse duplicate ZF gene names by summing
+## e.g. abca4a and abca4b are all combined together into abca4
+zf_counts_human_gene_names <- zebrafish$counts %>%
+  as_tibble(rownames = 'zebrafish_ensembl_gene') %>%
+  mutate(zebrafish_ensembl_gene = gsub('\\.\\d+','', zebrafish_ensembl_gene)) %>%
+  left_join(hcop %>% dplyr::select(human_symbol, zebrafish_ensembl_gene) %>%
+              filter(human_symbol != '-')) %>%
+  group_by(human_symbol) %>%
+  summarise(across(where(is.numeric), sum))
 
-same_log <- log2(same + 1)
+same$Gene <- row.names(same)
+same2 <- same %>% left_join(zf_counts_human_gene_names, by = c('Gene' = 'human_symbol'))
+row.names(same2) <- same2$Gene
+same2 <- same2[,!grepl('Gene',colnames(same2))] %>% data.frame()
+same2 <- same2[complete.cases(same2),]
+
+
+same_log <- log2(same2 + 1)
 # add microarray
 load('data/microarray_table.Rdata')
 same_log <- same_log %>% as_tibble(rownames = 'Gene') %>%
@@ -140,13 +157,38 @@ qsmooth_batch <- same_log %>%
   enframe() %>%
   mutate(Sample = case_when(grepl('CEL', value) ~ str_extract(value, 'GSM\\d+'),
                             TRUE ~ value)) %>%
-  left_join(sample_meta %>% dplyr::select(Sample, Accession, Fusion) %>% unique(),
+  left_join(sample_meta %>% dplyr::select(Sample, Accession, Fusion, Technology) %>% unique(),
             by = 'Sample') %>%
-  pull(Accession)
+  pull(Technology)
+# same_qsmooth <- qsmooth(same_log, group_factor = qsmooth_factors, batch = qsmooth_batch)
+same_qsmooth <- qsmooth(same_log, group_factor = qsmooth_factors)
 
-same_qsmooth <- qsmooth(same_log, group_factor = qsmooth_factors, batch = qsmooth_batch)
+qsmooth_counts <- same_qsmooth@qsmoothData
+colnames(qsmooth_counts) <- colnames(qsmooth_counts) %>% gsub('_.*|.CEL.*','',.)
+qsmooth_counts %>%
+  as_tibble(rownames = 'Gene') %>%
+  pivot_longer(-Gene, names_to = 'Sample', values_to = 'log2(Counts)') %>%
+  #filter(Sample %in% colData$Sample) %>%
+  left_join(sample_meta) %>% ggplot(aes(x=`log2(Counts)`, color = Technology)) +
+  geom_density() +
+  facet_wrap(~Fusion)
 #####################################################################################
 
+# straight quantile norm
+qnorm <- preprocessCore::normalize.quantiles(as.matrix(same_log)) %>% data.frame()
+colnames(qnorm) <- colnames(same_log)
+row.names(qnorm) <- row.names(same_log)
+
+qnorm_counts <- qnorm
+colnames(qnorm_counts) <- colnames(qnorm_counts) %>% gsub('_.*|.CEL.*','',.)
+qnorm_counts %>%
+  as_tibble(rownames = 'Gene') %>%
+  pivot_longer(-Gene, names_to = 'Sample', values_to = 'log2(Counts)') %>%
+  #filter(Sample %in% colData$Sample) %>%
+  left_join(sample_meta) %>% ggplot(aes(x=`log2(Counts)`, color = Technology)) +
+  geom_density() +
+  facet_wrap(~Fusion)
+#################
 
 run_PCA <- function(matrix, n_top_var = 2000){
   ntop = n_top_var
@@ -162,6 +204,7 @@ run_PCA <- function(matrix, n_top_var = 2000){
 PCA_log <- run_PCA(same_log, n_top_var = 2000)
 PCA_rank <- run_PCA(same_rank_norm, n_top_var = 2000)
 PCA_qsmooth <- run_PCA(same_qsmooth@qsmoothData, n_top_var = 2000)
+PCA_qnorm <- run_PCA(qnorm_counts, n_top_var =2000)
 
 save(same, same_log, same_rank_norm, same_qsmooth, file = 'data/microarray_NGS_objects.Rdata')
 
@@ -357,5 +400,11 @@ dev.off()
 
 pdf('analysis/PCA_qsmoothNorm.pdf', width = 12, height = 12)
 plotter(PCA_qsmooth, plot_title = 'qsmooth normalization')
+dev.off()
+
+
+
+pdf('analysis/PCA_qnorm.pdf', width = 12, height = 12)
+plotter(PCA_qnorm, plot_title = 'Quantile Normalization')
 dev.off()
 
