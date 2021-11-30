@@ -20,3 +20,13 @@ si %>% filter(!is.na(Run), Organism == 'Mouse') %>%
   pivot_longer(cols = c(R1,R2)) %>%
   dplyr::select(-name) %>%
   write_tsv('~/Desktop/x2.tsv')
+
+
+si %>% filter(!is.na(Run), Organism == 'Zebrafish') %>%
+  dplyr::select(Sample, Run) %>%
+  mutate(R1 = glue::glue('{Run}_1.fastq.gz'),
+         R2 = glue::glue('{Run}_2.fastq.gz')) %>%
+  dplyr::select(-Run) %>%
+  pivot_longer(cols = c(R1,R2)) %>%
+  dplyr::select(-name) %>%
+  write_tsv('~/Desktop/x3.tsv')

@@ -1,30 +1,64 @@
 library(edgeR)
-ngs_counts <- same
+ngs_counts <- same_qsmooth@qsmoothData
+colnames(ngs_counts) <- colnames(ngs_counts) %>% gsub('_.*|.CEL.*','',.)
+#d_zed <- DGEList(ngs_counts)
+#d_zed <- calcNormFactors(d_zed)
 
-d_zed <- DGEList(ngs_counts)
-d_zed <- calcNormFactors(d_zed)
-
-sample_meta_HomoMus <- sample_meta %>% filter(Sample %in% colnames(ngs_counts)) %>%
+sample_meta_D <- sample_meta %>% filter(Sample %in% colnames(ngs_counts)) %>%
   dplyr::select(Sample:Section, Layout:Fusion) %>%
   unique()
 
-colData <- d_zed$samples %>% as_tibble(rownames = 'Sample') %>% left_join(sample_meta_HomoMus)
+colData <- colnames(ngs_counts) %>% as_tibble() %>% dplyr::rename(Sample = value) %>%  left_join(sample_meta_D)
 colData <- data.frame(colData)
 row.names(colData) <- colData$Sample
 
-d_zed$samples <- colData
+# d_zed$samples <- colData
 
 cutoff <- 2
-drop <- which(apply(cpm(d_zed), 1, max) < cutoff)
-d <- d_zed[-drop,]
+drop <- which(apply((ngs_counts), 1, max) < cutoff) #which(apply(cpm(d_zed), 1, max) < cutoff)
+d <- ngs_counts[-drop,]
 dim(d) # number of genes left
 
 
-mm <- model.matrix(~0 + d$samples$Fusion + d$samples$Organism)
-y <- voom(d, mm, plot = T)
-fit <- lmFit(y, mm)
-head(coef(fit))
+# reduce down to OF and OFM (optic fissure (margin))
+ofm_meta <- sample_meta_D %>% filter(Section %in% c('OF','OFM'))
+d_ofm <- d[,ofm_meta$Sample]
+colData <- colnames(d_ofm) %>% as_tibble() %>% dplyr::rename(Sample = value) %>%  left_join(ofm_meta)
+colData <- data.frame(colData)
+row.names(colData) <- colData$Sample
 
-efit <- eBayes(fit)
-top.table <- topTable(efit, sort.by = "F", n = Inf)
+
+mm <- model.matrix(~0 + colData$Fusion + colData$Organism)
+colnames(mm) <- c('After','Before','During','Organism')
+#y <- voom(d, mm, plot = T)
+fit <- lmFit(d_ofm, mm)
+contrast.matrix = makeContrasts(After-During, After-Before, During-Before, levels=mm)
+fit_contrasts <- contrasts.fit(fit, contrast.matrix)
+
+
+
+efit <- eBayes(fit_contrasts)
+top.table <- topTable(efit, sort.by = "p", n = Inf, coef="After - During")
 head(top.table, 20)
+
+top.table <- topTable(efit, sort.by = "p", n = Inf, coef="During - Before")
+head(top.table, 20)
+
+top.table <- topTable(efit, sort.by = "p", n = Inf, coef="After - Before")
+head(top.table, 20)
+
+
+
+
+ngs_counts %>%
+  as_tibble(rownames = 'Gene') %>%
+  pivot_longer(-Gene, names_to = 'Sample', values_to = 'log2(Counts)') %>%
+  filter(Sample %in% colData$Sample) %>%
+  left_join(colData) %>% filter(Gene %in% row.names(top.table %>% head(10))) %>%
+  mutate(Fusion = factor(Fusion, levels = c('Before','During','After'))) %>%
+  ggplot(aes(x=Fusion, y=`log2(Counts)`, color = Organism, shape = Technology)) +
+  geom_boxplot(aes(group = Fusion), color = 'Black') +
+  ggbeeswarm::geom_quasirandom(size = 3, alpha = 0.7) +
+  cowplot::theme_cowplot() +
+  facet_wrap(~Gene, scales = 'free_y') +
+  ggsci::scale_color_aaas()

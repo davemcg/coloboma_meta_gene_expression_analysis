@@ -61,15 +61,25 @@ sample_meta_rnaseq <- read_tsv('data/sample_info2.tsv') %>% filter(!is.na(Run))%
 
 rna_processor <- function(meta, organism, countsFromAbundance = 'no'){
 
-  samples <- str_extract(files, 'SAMEA\\d+')
+  samples <- str_extract(files, 'SAMEA\\d+|SRS\\d+')
   sample_meta_rnaseq_org <- meta %>% filter(Sample %in% samples) %>% filter(Organism == organism)
 
   org_files <- files %>% enframe() %>%
-    mutate(sample = str_extract(value, 'SAMEA\\d+')) %>%
+    mutate(sample = str_extract(value,  'SAMEA\\d+|SRS\\d+')) %>%
     filter(sample %in% sample_meta_rnaseq_org$Sample) %>%
     pull(value)
   anno <- fread(org_files[1])
-  anno$Gene <- sapply(anno$Name,function(x) strsplit(x,'\\|')[[1]][6])
+  if (organism == 'Zebrafish'){
+    zf_tx <- read_tsv('~/git/coloboma_meta_gene_expression_analysis/data/Danio_rerio.GRCz11.release104.cdna.info.txt.gz', col_names = FALSE)
+    zf_tx_info <- zf_tx %>% separate(X1, into = c('tx','type','chromosome','gene','gene_biotype','transcript_biotype', 'gene_symbol', 'description'), sep =' ') %>%
+      mutate(tx = str_extract(tx, 'ENSDART\\d+.\\d+'),
+             gene = gsub('gene:','',gene),
+             gene_symbol = gsub('gene_symbol:','',gene_symbol))
+    anno <- anno %>% left_join(zf_tx_info %>% dplyr::select(tx, gene), by = c('Name' = 'tx')) %>%
+      dplyr::rename(Gene = gene)
+  } else {
+    anno$Gene <- sapply(anno$Name,function(x) strsplit(x,'\\|')[[1]][6])
+  }
   anno_tximport <- anno %>%
     dplyr::select(target_id = Name, Gene)
 
@@ -81,14 +91,16 @@ rna_processor <- function(meta, organism, countsFromAbundance = 'no'){
   out$txi <- txi
   out$counts <- txi.deseq2
   out$meta <- sample_meta_rnaseq_org
+  colnames(out$counts) <- out$meta$Sample %>% unique()
   out
 }
 
-human <- rna_processor(sample_meta_rnaseq, 'Human', 'no')
-mouse <- rna_processor(sample_meta_rnaseq, 'Mouse', 'no')
+human <- rna_processor(sample_meta_rnaseq, 'Human', 'lengthScaledTPM')
+mouse <- rna_processor(sample_meta_rnaseq, 'Mouse', 'lengthScaledTPM')
+zebrafish <- rna_processor(sample_meta_rnaseq, 'Zebrafish', 'lengthScaledTPM')
 
-colnames(human$counts) <- human$meta$Sample %>% unique()
-colnames(mouse$counts) <- mouse$meta$Sample %>% unique()
+# colnames(human$counts) <- human$meta$Sample %>% unique()
+# colnames(mouse$counts) <- mouse$meta$Sample %>% unique()
 
 same <- human$counts %>% as_tibble(rownames = 'Gene') %>%
   left_join(mouse$counts %>% as_tibble(rownames = 'Gene') %>%
@@ -104,8 +116,10 @@ load('data/microarray_table.Rdata')
 same_log <- same_log %>% as_tibble(rownames = 'Gene') %>%
   left_join(microarray_table %>% as_tibble(rownames = 'Gene') %>%
               mutate(Gene = toupper(Gene)))
+
+same_log <- same_log %>% data.frame()
 row.names(same_log) <- same_log$Gene
-same_log <- same_log[,-1] %>% data.frame()
+same_log <- same_log[,-1]
 same_log <- same_log[complete.cases(same_log),]
 
 # rank norm
@@ -148,6 +162,9 @@ run_PCA <- function(matrix, n_top_var = 2000){
 PCA_log <- run_PCA(same_log, n_top_var = 2000)
 PCA_rank <- run_PCA(same_rank_norm, n_top_var = 2000)
 PCA_qsmooth <- run_PCA(same_qsmooth@qsmoothData, n_top_var = 2000)
+
+save(same, same_log, same_rank_norm, same_qsmooth, file = 'data/microarray_NGS_objects.Rdata')
+
 
 plotter <- function(PCA, plot_title = NA){
   title <- ggdraw() +
@@ -192,6 +209,16 @@ plotter <- function(PCA, plot_title = NA){
     cowplot::theme_cowplot() +
     ggsci::scale_color_jama()
 
+  twoC <- PCA$x %>% as_tibble(rownames = 'Sample') %>%
+    mutate(Sample = case_when(grepl('CEL', Sample) ~ str_extract(Sample, 'GSM\\d+'),
+                              TRUE ~ Sample)) %>%
+    left_join(sample_meta %>% mutate(Technology = case_when(!is.na(Run) ~ 'Microarray', TRUE ~ 'RNA-Seq')),
+              by = 'Sample') %>%
+    ggplot(aes(x=PC1,y=PC2, color = Fusion, shape = Fusion)) +
+    geom_point(size=4) +
+    cowplot::theme_cowplot() +
+    ggsci::scale_color_d3()
+
   # PC 3 4
   three <- PCA$x %>% as_tibble(rownames = 'Sample') %>%
     mutate(Sample = case_when(grepl('CEL', Sample) ~ str_extract(Sample, 'GSM\\d+'),
@@ -221,6 +248,16 @@ plotter <- function(PCA, plot_title = NA){
     geom_point(size=4) +
     cowplot::theme_cowplot() +
     ggsci::scale_color_jama()
+
+  fourC <- PCA$x %>% as_tibble(rownames = 'Sample') %>%
+    mutate(Sample = case_when(grepl('CEL', Sample) ~ str_extract(Sample, 'GSM\\d+'),
+                              TRUE ~ Sample)) %>%
+    left_join(sample_meta %>% mutate(Technology = case_when(!is.na(Run) ~ 'Microarray', TRUE ~ 'RNA-Seq')),
+              by = 'Sample') %>%
+    ggplot(aes(x=PC3,y=PC4, color = Fusion, shape = Fusion)) +
+    geom_point(size=4) +
+    cowplot::theme_cowplot() +
+    ggsci::scale_color_d3()
 
   # PC 5 6
   five <- PCA$x %>% as_tibble(rownames = 'Sample') %>%
@@ -252,6 +289,16 @@ plotter <- function(PCA, plot_title = NA){
     cowplot::theme_cowplot() +
     ggsci::scale_color_jama()
 
+  sixC <- PCA$x %>% as_tibble(rownames = 'Sample') %>%
+    mutate(Sample = case_when(grepl('CEL', Sample) ~ str_extract(Sample, 'GSM\\d+'),
+                              TRUE ~ Sample)) %>%
+    left_join(sample_meta %>% mutate(Technology = case_when(!is.na(Run) ~ 'Microarray', TRUE ~ 'RNA-Seq')),
+              by = 'Sample') %>%
+    ggplot(aes(x=PC5,y=PC6, color = Fusion, shape = Fusion)) +
+    geom_point(size=4) +
+    cowplot::theme_cowplot() +
+    ggsci::scale_color_d3()
+
   # PC 7 8
   seven <- PCA$x %>% as_tibble(rownames = 'Sample') %>%
     mutate(Sample = case_when(grepl('CEL', Sample) ~ str_extract(Sample, 'GSM\\d+'),
@@ -281,11 +328,21 @@ plotter <- function(PCA, plot_title = NA){
     geom_point(size=4) +
     cowplot::theme_cowplot() +
     ggsci::scale_color_jama()
-  merge <- cowplot::plot_grid(one, two, twoB,
-                              three, four, fourB,
-                              five, six, sixB,
-                              seven, eight, eightB,
-                              ncol = 3)
+
+  eightC <- PCA$x %>% as_tibble(rownames = 'Sample') %>%
+    mutate(Sample = case_when(grepl('CEL', Sample) ~ str_extract(Sample, 'GSM\\d+'),
+                              TRUE ~ Sample)) %>%
+    left_join(sample_meta %>% mutate(Technology = case_when(!is.na(Run) ~ 'Microarray', TRUE ~ 'RNA-Seq')),
+              by = 'Sample') %>%
+    ggplot(aes(x=PC7,y=PC8, color = Fusion, shape = Fusion)) +
+    geom_point(size=4) +
+    cowplot::theme_cowplot() +
+    ggsci::scale_color_d3()
+  merge <- cowplot::plot_grid(one, two, twoB, twoC,
+                              three, four, fourB, fourC,
+                              five, six, sixB, sixC,
+                              seven, eight, eightB, eightC,
+                              ncol = 4)
   plot_grid(title, merge, ncol = 1, rel_heights = c(0.1,5))
 }
 

@@ -1,0 +1,225 @@
+RawFile 	study_accession 	Organism  	Stage 	Section	Other
+GSM2944692_E11.5-OF-A.CEL.gz	GSE109501	Mouse	E11.5	OF	
+GSM2944693_E11.5-OF-B.CEL.gz	GSE109501	Mouse	E11.5	OF	
+GSM2944694_E11.5-OF-C.CEL.gz	GSE109501	Mouse	E11.5	OF	
+GSM2944695_E11.5-NR-A.CEL.gz	GSE109501	Mouse	E11.5	NR	
+GSM2944696_E11.5-NR-B.CEL.gz	GSE109501	Mouse	E11.5	NR	
+GSM2944697_E11.5-NR-C.CEL.gz	GSE109501	Mouse	E11.5	NR	
+GSM2944698_E11.5-TR-A.CEL.gz	GSE109501	Mouse	E11.5	TR	
+GSM2944699_E11.5-TR-B.CEL.gz	GSE109501	Mouse	E11.5	TR	
+GSM2944700_E11.5-TR-C.CEL.gz	GSE109501	Mouse	E11.5	TR	
+GSM327854.CEL.gz	GSE13103	Mouse	E10.5	OF	
+GSM327855.CEL.gz	GSE13103	Mouse	E10.5	OF	
+GSM327856.CEL.gz	GSE13103	Mouse	E10.5	OF	
+GSM327857.CEL.gz	GSE13103	Mouse	E11.5	OF	
+GSM327858.CEL.gz	GSE13103	Mouse	E11.5	OF	
+GSM327859.CEL.gz	GSE13103	Mouse	E11.5	OF	
+GSM327860.CEL.gz	GSE13103	Mouse	E12.5	OF	
+GSM327861.CEL.gz	GSE13103	Mouse	E12.5	OF	
+GSM3904652_Dors_E5_1_abundance.tsv.gz	GSE84916	Chick	E5	Dorsal	Replicate 1
+GSM3904653_Fiss_E5_1_abundance.tsv.gz	GSE84916	Chick	E5	Fissure	Replicate 1
+GSM3904654_Vent_E5_1_abundance.tsv.gz	GSE84916	Chick	E5	Ventral	Replicate 1
+GSM3904655_Whole_E5_1_abundance.tsv.gz	GSE84916	Chick	E5	Whole	Replicate 1
+GSM3904656_Dors_E5_2_abundance.tsv.gz	GSE84916	Chick	E5	Dorsal	Replicate 2
+GSM3904657_Fiss_E5_2_abundance.tsv.gz	GSE84916	Chick	E5	Fissure	Replicate 2
+GSM3904658_Vent_E5_2_abundance.tsv.gz	GSE84916	Chick	E5	Ventral	Replicate 2
+GSM3904659_Whole_E5_2_abundance.tsv.gz	GSE84916	Chick	E5	Whole	Replicate 2
+GSM3904660_Dors_E5_3_abundance.tsv.gz	GSE84916	Chick	E5	Dorsal	Replicate 3
+GSM3904661_Fiss_E5_3_abundance.tsv.gz	GSE84916	Chick	E5	Fissure	Replicate 3
+GSM3904662_Vent_E5_3_abundance.tsv.gz	GSE84916	Chick	E5	Ventral	Replicate 3
+GSM3904663_Whole_E5_3_abundance.tsv.gz	GSE84916	Chick	E5	Whole	Replicate 3
+GSM3904664_Fiss_E5_1_abundance.tsv.gz	GSE84916	Chick	E6	Fissure	Replicate 1
+GSM3904665_Vent_E5_1_abundance.tsv.gz	GSE84916	Chick	E6	Ventral	Replicate 1
+GSM3904666_Whole_E5_1_abundance.tsv.gz	GSE84916	Chick	E6	Whole	Replicate 1
+GSM3904667_Fiss_E5_2_abundance.tsv.gz	GSE84916	Chick	E6	Fissure	Replicate 2
+GSM3904668_Vent_E5_2_abundance.tsv.gz	GSE84916	Chick	E6	Ventral	Replicate 2
+GSM3904669_Whole_E5_2_abundance.tsv.gz	GSE84916	Chick	E6	Whole	Replicate 2
+GSM3904670_Fiss_E5_3_abundance.tsv.gz	GSE84916	Chick	E6	Fissure	Replicate 3
+GSM3904671_Vent_E5_3_abundance.tsv.gz	GSE84916	Chick	E6	Ventral	Replicate 3
+GSM3904672_Whole_E5_3_abundance.tsv.gz	GSE84916	Chick	E6	Whole	Replicate 3
+GSM3904673_Fiss_E5_1_abundance.tsv.gz	GSE84916	Chick	E7	Fissure	Replicate 1
+GSM3904674_Vent_E5_1_abundance.tsv.gz	GSE84916	Chick	E7	Ventral	Replicate 1
+GSM3904675_Whole_E5_1_abundance.tsv.gz	GSE84916	Chick	E7	Whole	Replicate 1
+GSM3904676_Fiss_E5_2_abundance.tsv.gz	GSE84916	Chick	E7	Fissure	Replicate 2
+GSM3904677_Vent_E5_2_abundance.tsv.gz	GSE84916	Chick	E7	Ventral	Replicate 2
+GSM3904678_Whole_E5_2_abundance.tsv.gz	GSE84916	Chick	E7	Whole	Replicate 2
+GSM3904679_Fiss_E5_3_abundance.tsv.gz	GSE84916	Chick	E7	Fissure	Replicate 3
+GSM3904680_Vent_E5_3_abundance.tsv.gz	GSE84916	Chick	E7	Ventral	Replicate 3
+GSM3904681_Whole_E5_3_abundance.tsv.gz	GSE84916	Chick	E7	Whole	Replicate 3
+SRX9340657	GSE159822	Zebrafish	32hpf	OF	Replicate 1
+SRX9340658	GSE159822	Zebrafish	32hpf	DR	Replicate 1
+SRX9340659	GSE159822	Zebrafish	48hpf	OF	Replicate 1
+SRX9340660	GSE159822	Zebrafish	48hpf	DR	Replicate 1
+SRX9340661	GSE159822	Zebrafish	56hpf	OF	Replicate 1
+SRX9340662	GSE159822	Zebrafish	56hpf	DR	Replicate 1
+SRX9340663	GSE159822	Zebrafish	32hpf	OF	Replicate 2
+SRX9340664	GSE159822	Zebrafish	32hpf	DR	Replicate 2
+SRX9340665	GSE159822	Zebrafish	48hpf	OF	Replicate 2
+SRX9340666	GSE159822	Zebrafish	48hpf	DR	Replicate 2
+SRX9340667	GSE159822	Zebrafish	56hpf	OF	Replicate 2
+SRX9340668	GSE159822	Zebrafish	56hpf	DR	Replicate 2
+SRX9340669	GSE159822	Zebrafish	32hpf	OF	Replicate 3
+SRX9340670	GSE159822	Zebrafish	32hpf	DR	Replicate 3
+SRX9340671	GSE159822	Zebrafish	48hpf	OF	Replicate 3
+SRX9340672	GSE159822	Zebrafish	48hpf	DR	Replicate 3
+SRX9340673	GSE159822	Zebrafish	56hpf	OF	Replicate 3
+SRX9340674	GSE159822	Zebrafish	56hpf	DR	Replicate 3
+SRX9340675	GSE159822	Zebrafish	32hpf	OF	Replicate 4
+SRX9340676	GSE159822	Zebrafish	32hpf	DR	Replicate 4
+SRX9340677	GSE159822	Zebrafish	48hpf	OF	Replicate 4
+SRX9340678	GSE159822	Zebrafish	48hpf	DR	Replicate 4
+SRX9340679	GSE159822	Zebrafish	56hpf	OF	Replicate 4
+SRX9340680	GSE159822	Zebrafish	56hpf	DR	Replicate 4
+SRX9340681	GSE159822	Zebrafish	32hpf	OF	Replicate 5
+SRX9340682	GSE159822	Zebrafish	32hpf	DR	Replicate 5
+SRX9340683	GSE159822	Zebrafish	48hpf	OF	Replicate 5
+SRX9340684	GSE159822	Zebrafish	48hpf	DR	Replicate 5
+SRX9340685	GSE159822	Zebrafish	56hpf	OF	Replicate 5
+SRX9340686	GSE159822	Zebrafish	56hpf	DR	Replicate 5
+ERR4436656_1.fastq.gz	E-MTAB-9426	Human	CS17	Dorsal Cup	CS = Carneige Stage
+ERR4436656_2.fastq.gz	E-MTAB-9426	Human	CS17	Dorsal Cup	
+ERR4436657_1.fastq.gz	E-MTAB-9426	Human	CS17	Dorsal Cup	
+ERR4436657_2.fastq.gz	E-MTAB-9426	Human	CS17	Dorsal Cup	
+ERR4436658_1.fastq.gz	E-MTAB-9426	Human	CS17	Dorsal Cup	
+ERR4436658_2.fastq.gz	E-MTAB-9426	Human	CS17	Dorsal Cup	
+ERR4436659_1.fastq.gz	E-MTAB-9426	Human	CS17	Dorsal Cup	
+ERR4436659_2.fastq.gz	E-MTAB-9426	Human	CS17	Dorsal Cup	
+ERR4436660_1.fastq.gz	E-MTAB-9426	Human	CS17	OFM	
+ERR4436660_2.fastq.gz	E-MTAB-9426	Human	CS17	OFM	
+ERR4436661_1.fastq.gz	E-MTAB-9426	Human	CS17	OFM	
+ERR4436661_2.fastq.gz	E-MTAB-9426	Human	CS17	OFM	
+ERR4436662_1.fastq.gz	E-MTAB-9426	Human	CS17	OFM	
+ERR4436662_2.fastq.gz	E-MTAB-9426	Human	CS17	OFM	
+ERR4436663_1.fastq.gz	E-MTAB-9426	Human	CS17	OFM	
+ERR4436663_2.fastq.gz	E-MTAB-9426	Human	CS17	OFM	
+ERR4436664_1.fastq.gz	E-MTAB-9426	Human	CS17	Dorsal Cup	
+ERR4436664_2.fastq.gz	E-MTAB-9426	Human	CS17	Dorsal Cup	
+ERR4436665_1.fastq.gz	E-MTAB-9426	Human	CS17	Dorsal Cup	
+ERR4436665_2.fastq.gz	E-MTAB-9426	Human	CS17	Dorsal Cup	
+ERR4436666_1.fastq.gz	E-MTAB-9426	Human	CS17	Dorsal Cup	
+ERR4436666_2.fastq.gz	E-MTAB-9426	Human	CS17	Dorsal Cup	
+ERR4436667_1.fastq.gz	E-MTAB-9426	Human	CS17	Dorsal Cup	
+ERR4436667_2.fastq.gz	E-MTAB-9426	Human	CS17	Dorsal Cup	
+ERR4436668_1.fastq.gz	E-MTAB-9426	Human	CS17	OFM	
+ERR4436668_2.fastq.gz	E-MTAB-9426	Human	CS17	OFM	
+ERR4436669_1.fastq.gz	E-MTAB-9426	Human	CS17	OFM	
+ERR4436669_2.fastq.gz	E-MTAB-9426	Human	CS17	OFM	
+ERR4436670_1.fastq.gz	E-MTAB-9426	Human	CS17	OFM	
+ERR4436670_2.fastq.gz	E-MTAB-9426	Human	CS17	OFM	
+ERR4436671_1.fastq.gz	E-MTAB-9426	Human	CS17	OFM	
+ERR4436671_2.fastq.gz	E-MTAB-9426	Human	CS17	OFM	
+ERR4436672_1.fastq.gz	E-MTAB-9426	Human	CS18	Dorsal Cup	
+ERR4436672_2.fastq.gz	E-MTAB-9426	Human	CS18	Dorsal Cup	
+ERR4436673_1.fastq.gz	E-MTAB-9426	Human	CS18	Dorsal Cup	
+ERR4436673_2.fastq.gz	E-MTAB-9426	Human	CS18	Dorsal Cup	
+ERR4436674_1.fastq.gz	E-MTAB-9426	Human	CS18	Dorsal Cup	
+ERR4436674_2.fastq.gz	E-MTAB-9426	Human	CS18	Dorsal Cup	
+ERR4436675_1.fastq.gz	E-MTAB-9426	Human	CS18	Dorsal Cup	
+ERR4436675_2.fastq.gz	E-MTAB-9426	Human	CS18	Dorsal Cup	
+ERR4436676_1.fastq.gz	E-MTAB-9426	Human	CS18	OFM	
+ERR4436676_2.fastq.gz	E-MTAB-9426	Human	CS18	OFM	
+ERR4436677_1.fastq.gz	E-MTAB-9426	Human	CS18	OFM	
+ERR4436677_2.fastq.gz	E-MTAB-9426	Human	CS18	OFM	
+ERR4436678_1.fastq.gz	E-MTAB-9426	Human	CS18	OFM	
+ERR4436678_2.fastq.gz	E-MTAB-9426	Human	CS18	OFM	
+ERR4436679_1.fastq.gz	E-MTAB-9426	Human	CS18	OFM	
+ERR4436679_2.fastq.gz	E-MTAB-9426	Human	CS18	OFM	
+ERR4436696_1.fastq.gz	E-MTAB-9427	Mouse	E11.5	Dorsal Cup	
+ERR4436696_2.fastq.gz	E-MTAB-9427	Mouse	E11.5	Dorsal Cup	
+ERR4436697_1.fastq.gz	E-MTAB-9427	Mouse	E11.5	Dorsal Cup	
+ERR4436697_2.fastq.gz	E-MTAB-9427	Mouse	E11.5	Dorsal Cup	
+ERR4436698_1.fastq.gz	E-MTAB-9427	Mouse	E11.5	Dorsal Cup	
+ERR4436698_2.fastq.gz	E-MTAB-9427	Mouse	E11.5	Dorsal Cup	
+ERR4436699_1.fastq.gz	E-MTAB-9427	Mouse	E11.5	Dorsal Cup	
+ERR4436699_2.fastq.gz	E-MTAB-9427	Mouse	E11.5	Dorsal Cup	
+ERR4436700_1.fastq.gz	E-MTAB-9427	Mouse	E11.5	OFM	
+ERR4436700_2.fastq.gz	E-MTAB-9427	Mouse	E11.5	OFM	
+ERR4436701_1.fastq.gz	E-MTAB-9427	Mouse	E11.5	OFM	
+ERR4436701_2.fastq.gz	E-MTAB-9427	Mouse	E11.5	OFM	
+ERR4436702_1.fastq.gz	E-MTAB-9427	Mouse	E11.5	OFM	
+ERR4436702_2.fastq.gz	E-MTAB-9427	Mouse	E11.5	OFM	
+ERR4436703_1.fastq.gz	E-MTAB-9427	Mouse	E11.5	OFM	
+ERR4436703_2.fastq.gz	E-MTAB-9427	Mouse	E11.5	OFM	
+ERR4436704_1.fastq.gz	E-MTAB-9427	Mouse	E11.5	Dorsal Cup	
+ERR4436704_2.fastq.gz	E-MTAB-9427	Mouse	E11.5	Dorsal Cup	
+ERR4436705_1.fastq.gz	E-MTAB-9427	Mouse	E11.5	Dorsal Cup	
+ERR4436705_2.fastq.gz	E-MTAB-9427	Mouse	E11.5	Dorsal Cup	
+ERR4436706_1.fastq.gz	E-MTAB-9427	Mouse	E11.5	Dorsal Cup	
+ERR4436706_2.fastq.gz	E-MTAB-9427	Mouse	E11.5	Dorsal Cup	
+ERR4436707_1.fastq.gz	E-MTAB-9427	Mouse	E11.5	Dorsal Cup	
+ERR4436707_2.fastq.gz	E-MTAB-9427	Mouse	E11.5	Dorsal Cup	
+ERR4436708_1.fastq.gz	E-MTAB-9427	Mouse	E11.5	OFM	
+ERR4436708_2.fastq.gz	E-MTAB-9427	Mouse	E11.5	OFM	
+ERR4436709_1.fastq.gz	E-MTAB-9427	Mouse	E11.5	OFM	
+ERR4436709_2.fastq.gz	E-MTAB-9427	Mouse	E11.5	OFM	
+ERR4436710_1.fastq.gz	E-MTAB-9427	Mouse	E11.5	OFM	
+ERR4436710_2.fastq.gz	E-MTAB-9427	Mouse	E11.5	OFM	
+ERR4436711_1.fastq.gz	E-MTAB-9427	Mouse	E11.5	OFM	
+ERR4436711_2.fastq.gz	E-MTAB-9427	Mouse	E11.5	OFM	
+ERR4436712_1.fastq.gz	E-MTAB-9427	Mouse	E11.5	Dorsal Cup	
+ERR4436712_2.fastq.gz	E-MTAB-9427	Mouse	E11.5	Dorsal Cup	
+ERR4436713_1.fastq.gz	E-MTAB-9427	Mouse	E11.5	Dorsal Cup	
+ERR4436713_2.fastq.gz	E-MTAB-9427	Mouse	E11.5	Dorsal Cup	
+ERR4436714_1.fastq.gz	E-MTAB-9427	Mouse	E11.5	Dorsal Cup	
+ERR4436714_2.fastq.gz	E-MTAB-9427	Mouse	E11.5	Dorsal Cup	
+ERR4436715_1.fastq.gz	E-MTAB-9427	Mouse	E11.5	Dorsal Cup	
+ERR4436715_2.fastq.gz	E-MTAB-9427	Mouse	E11.5	Dorsal Cup	
+ERR4436716_1.fastq.gz	E-MTAB-9427	Mouse	E11.5	OFM	
+ERR4436716_2.fastq.gz	E-MTAB-9427	Mouse	E11.5	OFM	
+ERR4436717_1.fastq.gz	E-MTAB-9427	Mouse	E11.5	OFM	
+ERR4436717_2.fastq.gz	E-MTAB-9427	Mouse	E11.5	OFM	
+ERR4436718_1.fastq.gz	E-MTAB-9427	Mouse	E11.5	OFM	
+ERR4436718_2.fastq.gz	E-MTAB-9427	Mouse	E11.5	OFM	
+ERR4436719_1.fastq.gz	E-MTAB-9427	Mouse	E11.5	OFM	
+ERR4436719_2.fastq.gz	E-MTAB-9427	Mouse	E11.5	OFM	
+ERR4436720_1.fastq.gz	E-MTAB-9427	Mouse	E12.5	Dorsal Cup	
+ERR4436720_2.fastq.gz	E-MTAB-9427	Mouse	E12.5	Dorsal Cup	
+ERR4436721_1.fastq.gz	E-MTAB-9427	Mouse	E12.5	Dorsal Cup	
+ERR4436721_2.fastq.gz	E-MTAB-9427	Mouse	E12.5	Dorsal Cup	
+ERR4436722_1.fastq.gz	E-MTAB-9427	Mouse	E12.5	Dorsal Cup	
+ERR4436722_2.fastq.gz	E-MTAB-9427	Mouse	E12.5	Dorsal Cup	
+ERR4436723_1.fastq.gz	E-MTAB-9427	Mouse	E12.5	Dorsal Cup	
+ERR4436723_2.fastq.gz	E-MTAB-9427	Mouse	E12.5	Dorsal Cup	
+ERR4436724_1.fastq.gz	E-MTAB-9427	Mouse	E12.5	OFM	
+ERR4436724_2.fastq.gz	E-MTAB-9427	Mouse	E12.5	OFM	
+ERR4436725_1.fastq.gz	E-MTAB-9427	Mouse	E12.5	OFM	
+ERR4436725_2.fastq.gz	E-MTAB-9427	Mouse	E12.5	OFM	
+ERR4436726_1.fastq.gz	E-MTAB-9427	Mouse	E12.5	OFM	
+ERR4436726_2.fastq.gz	E-MTAB-9427	Mouse	E12.5	OFM	
+ERR4436727_1.fastq.gz	E-MTAB-9427	Mouse	E12.5	OFM	
+ERR4436727_2.fastq.gz	E-MTAB-9427	Mouse	E12.5	OFM	
+ERR4436728_1.fastq.gz	E-MTAB-9427	Mouse	E12.5	Dorsal Cup	
+ERR4436728_2.fastq.gz	E-MTAB-9427	Mouse	E12.5	Dorsal Cup	
+ERR4436729_1.fastq.gz	E-MTAB-9427	Mouse	E12.5	Dorsal Cup	
+ERR4436729_2.fastq.gz	E-MTAB-9427	Mouse	E12.5	Dorsal Cup	
+ERR4436730_1.fastq.gz	E-MTAB-9427	Mouse	E12.5	Dorsal Cup	
+ERR4436730_2.fastq.gz	E-MTAB-9427	Mouse	E12.5	Dorsal Cup	
+ERR4436731_1.fastq.gz	E-MTAB-9427	Mouse	E12.5	Dorsal Cup	
+ERR4436731_2.fastq.gz	E-MTAB-9427	Mouse	E12.5	Dorsal Cup	
+ERR4436732_1.fastq.gz	E-MTAB-9427	Mouse	E12.5	OFM	
+ERR4436732_2.fastq.gz	E-MTAB-9427	Mouse	E12.5	OFM	
+ERR4436733_1.fastq.gz	E-MTAB-9427	Mouse	E12.5	OFM	
+ERR4436733_2.fastq.gz	E-MTAB-9427	Mouse	E12.5	OFM	
+ERR4436734_1.fastq.gz	E-MTAB-9427	Mouse	E12.5	OFM	
+ERR4436734_2.fastq.gz	E-MTAB-9427	Mouse	E12.5	OFM	
+ERR4436735_1.fastq.gz	E-MTAB-9427	Mouse	E12.5	OFM	
+ERR4436735_2.fastq.gz	E-MTAB-9427	Mouse	E12.5	OFM	
+ERR4436736_1.fastq.gz	E-MTAB-9427	Mouse	E12.5	Dorsal Cup	
+ERR4436736_2.fastq.gz	E-MTAB-9427	Mouse	E12.5	Dorsal Cup	
+ERR4436737_1.fastq.gz	E-MTAB-9427	Mouse	E12.5	Dorsal Cup	
+ERR4436737_2.fastq.gz	E-MTAB-9427	Mouse	E12.5	Dorsal Cup	
+ERR4436738_1.fastq.gz	E-MTAB-9427	Mouse	E12.5	Dorsal Cup	
+ERR4436738_2.fastq.gz	E-MTAB-9427	Mouse	E12.5	Dorsal Cup	
+ERR4436739_1.fastq.gz	E-MTAB-9427	Mouse	E12.5	Dorsal Cup	
+ERR4436739_2.fastq.gz	E-MTAB-9427	Mouse	E12.5	Dorsal Cup	
+ERR4436740_1.fastq.gz	E-MTAB-9427	Mouse	E12.5	OFM	
+ERR4436740_2.fastq.gz	E-MTAB-9427	Mouse	E12.5	OFM	
+ERR4436741_1.fastq.gz	E-MTAB-9427	Mouse	E12.5	OFM	
+ERR4436741_2.fastq.gz	E-MTAB-9427	Mouse	E12.5	OFM	
+ERR4436742_1.fastq.gz	E-MTAB-9427	Mouse	E12.5	OFM	
+ERR4436742_2.fastq.gz	E-MTAB-9427	Mouse	E12.5	OFM	
+ERR4436743_1.fastq.gz	E-MTAB-9427	Mouse	E12.5	OFM	
+ERR4436743_2.fastq.gz	E-MTAB-9427	Mouse	E12.5	OFM	
+					
+					
+					

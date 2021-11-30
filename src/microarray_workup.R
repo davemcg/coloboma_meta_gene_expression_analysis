@@ -14,9 +14,9 @@ library(tidyverse)
 
 gene_probe_table <- read_tsv('data/gene_mouse_probe.tsv.gz')
 cel_files <- list.files('data/',pattern = 'CEL', full.names = TRUE)
-data <- read.celfiles(cel_files )
+data <- affy::ReadAffy(filenames = cel_files )
 
-HNorm <- rma(data)
+HNorm <- gcrma::gcrma(data)
 ID <- featureNames(HNorm)
 
 
@@ -46,7 +46,7 @@ PCA$x %>% as_tibble(rownames = 'X1') %>%
 PCA$x %>% as_tibble(rownames = 'X1') %>%
   mutate() %>%
   left_join(sample_info, by = c('X1' = 'CEL')) %>%
-  ggplot(aes(x=PC1,y=PC2, color = Stage)) +
+  ggplot(aes(x=PC3,y=PC4, color = Stage)) +
   geom_point(size=4)
 
 PCA$rotation %>%
