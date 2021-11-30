@@ -60,8 +60,9 @@ qnorm_counts %>%
   mutate(Fusion = factor(Fusion, levels = c('Before','During','After'))) %>%
   ggplot(aes(x=Fusion, y=`log2(Counts)`, color = Organism, shape = Technology)) +
   # geom_boxplot(aes(group = Fusion), color = 'Black', outlier.colour = NA) +
-  geom_boxplot(aes(group = interaction(Organism,Fusion)), outlier.colour = NA) +
+ # geom_boxplot(aes(group = interaction(Organism,Fusion)), outlier.colour = NA) +
   ggbeeswarm::geom_quasirandom(size = 3, alpha = 0.7) +
   cowplot::theme_cowplot() +
   facet_wrap(~Gene, scales = 'free_y') +
-  ggsci::scale_color_aaas()
+  ggsci::scale_color_aaas() +
+  stat_summary(fun=median, geom = 'line', aes(group = Organism))
