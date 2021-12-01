@@ -95,9 +95,9 @@ rna_processor <- function(meta, organism, countsFromAbundance = 'no'){
   out
 }
 
-human <- rna_processor(sample_meta_rnaseq, 'Human', 'lengthScaledTPM')
-mouse <- rna_processor(sample_meta_rnaseq, 'Mouse', 'lengthScaledTPM')
-zebrafish <- rna_processor(sample_meta_rnaseq, 'Zebrafish', 'lengthScaledTPM')
+human <- rna_processor(sample_meta_rnaseq, 'Human', 'no')
+mouse <- rna_processor(sample_meta_rnaseq, 'Mouse', 'no')
+zebrafish <- rna_processor(sample_meta_rnaseq, 'Zebrafish', 'no')
 
 # merge mouse and human data
 same <- human$counts %>% as_tibble(rownames = 'Gene') %>%
@@ -127,24 +127,35 @@ same2 <- same2[,!grepl('Gene',colnames(same2))] %>% data.frame()
 same2 <- same2[complete.cases(same2),]
 
 
-same_log <- log2(same2 + 1)
+# normalize with voom
+colData <- colnames(same2) %>% as_tibble() %>% dplyr::rename(Sample = value) %>%
+  left_join(sample_meta_rnaseq %>% dplyr::select(Sample:Fusion, -Other) %>% unique())
+colData <- data.frame(colData)
+row.names(colData) <- colData$Sample
+colData$Section <- gsub('OFM','OF',colData$Section)
+
+mm <- model.matrix(~0  + colData$Fusion  + colData$Section + colData$Organism)
+colnames(mm) <- c('After','Before','During','DR','OF','Mouse','Zebrafish')
+y <- voom(same2, mm, plot = T)
+
+same_voom <- y$E
 # add microarray
 load('data/microarray_table.Rdata')
-same_log <- same_log %>% as_tibble(rownames = 'Gene') %>%
+same_voom <- same_voom %>% as_tibble(rownames = 'Gene') %>%
   left_join(microarray_table %>% as_tibble(rownames = 'Gene') %>%
               mutate(Gene = toupper(Gene)))
 
-same_log <- same_log %>% data.frame()
-row.names(same_log) <- same_log$Gene
-same_log <- same_log[,-1]
-same_log <- same_log[complete.cases(same_log),]
+same_voom <- same_voom %>% data.frame()
+row.names(same_voom) <- same_voom$Gene
+same_voom <- same_voom[,-1]
+same_voom <- same_voom[complete.cases(same_voom),]
 
 # rank norm
-same_rank_norm <- apply(same_log, 2, function(y) rank(y) / length(y))
+same_rank_norm <- apply(same_voom, 2, function(y) rank(y) / length(y))
 
 # qsmooth norm
 ## smooth across species for now
-qsmooth_factors <- same_log %>%
+qsmooth_factors <- same_voom %>%
   colnames() %>%
   enframe() %>%
   mutate(Sample = case_when(grepl('CEL', value) ~ str_extract(value, 'GSM\\d+'),
@@ -152,16 +163,16 @@ qsmooth_factors <- same_log %>%
   left_join(sample_meta %>% dplyr::select(Sample, Accession, Organism, Fusion) %>% unique(),
             by = 'Sample') %>%
   pull(Fusion)
-qsmooth_batch <- same_log %>%
+qsmooth_batch <- same_voom %>%
   colnames() %>%
   enframe() %>%
   mutate(Sample = case_when(grepl('CEL', value) ~ str_extract(value, 'GSM\\d+'),
                             TRUE ~ value)) %>%
   left_join(sample_meta %>% dplyr::select(Sample, Accession, Fusion, Technology) %>% unique(),
             by = 'Sample') %>%
-  pull(Technology)
-# same_qsmooth <- qsmooth(same_log, group_factor = qsmooth_factors, batch = qsmooth_batch)
-same_qsmooth <- qsmooth(same_log, group_factor = qsmooth_factors)
+  pull(Accession)
+# same_qsmooth <- qsmooth(same_voom, group_factor = qsmooth_factors, batch = qsmooth_batch)
+same_qsmooth <- qsmooth(same_voom, group_factor = qsmooth_factors)
 
 qsmooth_counts <- same_qsmooth@qsmoothData
 colnames(qsmooth_counts) <- colnames(qsmooth_counts) %>% gsub('_.*|.CEL.*','',.)
@@ -175,9 +186,9 @@ qsmooth_counts %>%
 #####################################################################################
 
 # straight quantile norm
-qnorm <- preprocessCore::normalize.quantiles(as.matrix(same_log)) %>% data.frame()
-colnames(qnorm) <- colnames(same_log)
-row.names(qnorm) <- row.names(same_log)
+qnorm <- preprocessCore::normalize.quantiles(as.matrix(same_voom)) %>% data.frame()
+colnames(qnorm) <- colnames(same_voom)
+row.names(qnorm) <- row.names(same_voom)
 
 qnorm_counts <- qnorm
 colnames(qnorm_counts) <- colnames(qnorm_counts) %>% gsub('_.*|.CEL.*','',.)
@@ -201,12 +212,12 @@ run_PCA <- function(matrix, n_top_var = 2000){
   PCA
 }
 
-PCA_log <- run_PCA(same_log, n_top_var = 2000)
+PCA_log <- run_PCA(same_voom, n_top_var = 2000)
 PCA_rank <- run_PCA(same_rank_norm, n_top_var = 2000)
 PCA_qsmooth <- run_PCA(same_qsmooth@qsmoothData, n_top_var = 2000)
 PCA_qnorm <- run_PCA(qnorm_counts, n_top_var =2000)
 
-save(same, same_log, same_rank_norm, same_qsmooth, file = 'data/microarray_NGS_objects.Rdata')
+save(same, same_voom, same_rank_norm, same_qsmooth, file = 'data/microarray_NGS_objects.Rdata')
 
 
 plotter <- function(PCA, plot_title = NA){
