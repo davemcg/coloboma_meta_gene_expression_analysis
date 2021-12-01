@@ -1,5 +1,5 @@
 library(edgeR)
-ngs_counts <- qnorm_counts
+ngs_counts <- qsmooth_counts
 colnames(ngs_counts) <- colnames(ngs_counts) %>% gsub('_.*|.CEL.*','',.)
 #d_zed <- DGEList(ngs_counts)
 #d_zed <- calcNormFactors(d_zed)
@@ -13,16 +13,17 @@ colData <- data.frame(colData)
 row.names(colData) <- colData$Sample
 
 # d_zed$samples <- colData
-
-cutoff <- 5
+#
+cutoff <- 1
 drop <- which(apply((ngs_counts), 1, max) < cutoff) #which(apply(cpm(d_zed), 1, max) < cutoff)
 d <- ngs_counts[-drop,]
 dim(d) # number of genes left
+d <- ngs_counts
 
 
-run_limma <- function(sample_meta_filter,
-                      counts,
-                      mm_names)
+run_limma <- function(counts_matrix,
+                      sample_meta_filtered,
+                      model = )
 
 # reduce down to OF and OFM (optic fissure (margin))
 # ofm_meta <- sample_meta_D %>% filter(Section %in% c('OF','OFM'))
@@ -32,11 +33,11 @@ colData <- data.frame(colData)
 row.names(colData) <- colData$Sample
 
 
-mm <- model.matrix(~0 + colData$Fusion + colData$Organism + colData$Technology + colData$Paper)
-colnames(mm) <- c('After','Before','During', 'Mouse','Zebrafish', 'RNAseq', 'Cao','Patel','Richardson')
+mm <- model.matrix(~0  + colData$Fusion + colData$Organism + colData$Technology)
+colnames(mm) <- c('After', 'Before','During', 'Mouse','Zebrafish','RNAseq')
 #y <- voom(d, mm, plot = T)
-fit <- lmFit(counts_filtered, mm)
-contrast.matrix = makeContrasts(After-During, After-Before, During-Before, levels=mm)
+fit <- lmFit(d_ofm, mm)
+contrast.matrix = makeContrasts(During-Before, After-During,levels=mm)
 fit_contrasts <- contrasts.fit(fit, contrast.matrix)
 
 
@@ -48,13 +49,10 @@ head(top.table, 20)
 top.table <- topTable(efit, sort.by = "p", n = Inf, coef="During - Before")
 head(top.table, 20)
 
-top.table <- topTable(efit, sort.by = "p", n = Inf, coef="After - Before")
-head(top.table, 20)
 
 
 
-
-qnorm_counts %>%
+qsmooth_counts %>%
   as_tibble(rownames = 'Gene') %>%
   pivot_longer(-Gene, names_to = 'Sample', values_to = 'log2(Counts)') %>%
   filter(Sample %in% colData$Sample) %>%
