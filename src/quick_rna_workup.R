@@ -217,6 +217,7 @@ PCA_rank <- run_PCA(same_rank_norm, n_top_var = 2000)
 PCA_qsmooth <- run_PCA(same_qsmooth@qsmoothData, n_top_var = 2000)
 PCA_qnorm <- run_PCA(qnorm_counts, n_top_var =2000)
 
+x <- run_PCA(cor_vals, n_top_var = 2000)
 save(same, same_voom, same_rank_norm, same_qsmooth, file = 'data/microarray_NGS_objects.Rdata')
 
 
@@ -273,6 +274,16 @@ plotter <- function(PCA, plot_title = NA){
     cowplot::theme_cowplot() +
     ggsci::scale_color_d3()
 
+  twoD <- PCA$x %>% as_tibble(rownames = 'Sample') %>%
+    mutate(Sample = case_when(grepl('CEL', Sample) ~ str_extract(Sample, 'GSM\\d+'),
+                              TRUE ~ Sample)) %>%
+    left_join(sample_meta %>% mutate(Section = gsub('OFM','OF',Section)),
+              by = 'Sample') %>%
+    ggplot(aes(x=PC1,y=PC2, color = Section, shape = Fusion)) +
+    geom_point(size=4) +
+    cowplot::theme_cowplot() +
+    ggsci::scale_color_futurama()
+
   # PC 3 4
   three <- PCA$x %>% as_tibble(rownames = 'Sample') %>%
     mutate(Sample = case_when(grepl('CEL', Sample) ~ str_extract(Sample, 'GSM\\d+'),
@@ -312,6 +323,16 @@ plotter <- function(PCA, plot_title = NA){
     geom_point(size=4) +
     cowplot::theme_cowplot() +
     ggsci::scale_color_d3()
+
+  fourD <- PCA$x %>% as_tibble(rownames = 'Sample') %>%
+    mutate(Sample = case_when(grepl('CEL', Sample) ~ str_extract(Sample, 'GSM\\d+'),
+                              TRUE ~ Sample)) %>%
+    left_join(sample_meta %>% mutate(Section = gsub('OFM','OF',Section)),
+              by = 'Sample') %>%
+    ggplot(aes(x=PC3,y=PC4, color = Section, shape = Fusion)) +
+    geom_point(size=4) +
+    cowplot::theme_cowplot() +
+    ggsci::scale_color_futurama()
 
   # PC 5 6
   five <- PCA$x %>% as_tibble(rownames = 'Sample') %>%
@@ -353,6 +374,16 @@ plotter <- function(PCA, plot_title = NA){
     cowplot::theme_cowplot() +
     ggsci::scale_color_d3()
 
+  sixD <- PCA$x %>% as_tibble(rownames = 'Sample') %>%
+    mutate(Sample = case_when(grepl('CEL', Sample) ~ str_extract(Sample, 'GSM\\d+'),
+                              TRUE ~ Sample)) %>%
+    left_join(sample_meta %>% mutate(Section = gsub('OFM','OF',Section)),
+              by = 'Sample') %>%
+    ggplot(aes(x=PC5,y=PC6, color = Section, shape = Fusion)) +
+    geom_point(size=4) +
+    cowplot::theme_cowplot() +
+    ggsci::scale_color_futurama()
+
   # PC 7 8
   seven <- PCA$x %>% as_tibble(rownames = 'Sample') %>%
     mutate(Sample = case_when(grepl('CEL', Sample) ~ str_extract(Sample, 'GSM\\d+'),
@@ -392,30 +423,41 @@ plotter <- function(PCA, plot_title = NA){
     geom_point(size=4) +
     cowplot::theme_cowplot() +
     ggsci::scale_color_d3()
-  merge <- cowplot::plot_grid(one, two, twoB, twoC,
-                              three, four, fourB, fourC,
-                              five, six, sixB, sixC,
-                              seven, eight, eightB, eightC,
-                              ncol = 4)
+
+  eightD <- PCA$x %>% as_tibble(rownames = 'Sample') %>%
+    mutate(Sample = case_when(grepl('CEL', Sample) ~ str_extract(Sample, 'GSM\\d+'),
+                              TRUE ~ Sample)) %>%
+    left_join(sample_meta %>% mutate(Section = gsub('OFM','OF',Section)),
+              by = 'Sample') %>%
+    ggplot(aes(x=PC7,y=PC8, color = Section, shape = Fusion)) +
+    geom_point(size=4) +
+    cowplot::theme_cowplot() +
+    ggsci::scale_color_futurama()
+
+  merge <- cowplot::plot_grid(one, two, twoB, twoC, twoD,
+                              three, four, fourB, fourC, fourD,
+                              five, six, sixB, sixC, sixD,
+                              seven, eight, eightB, eightC, eightD,
+                              ncol = 5)
   plot_grid(title, merge, ncol = 1, rel_heights = c(0.1,5))
 }
 
 system('mkdir -p analysis')
-pdf('analysis/PCA_noNorm.pdf', width = 12, height = 12)
+pdf('analysis/PCA_noNorm.pdf', width = 24, height = 12)
 plotter(PCA_log, plot_title = 'No normalization')
 dev.off()
 
-pdf('analysis/PCA_rankNorm.pdf', width = 12, height = 12)
+pdf('analysis/PCA_rankNorm.pdf', width = 24, height = 12)
 plotter(PCA_rank, plot_title = 'Rank normalization')
 dev.off()
 
-pdf('analysis/PCA_qsmoothNorm.pdf', width = 12, height = 12)
+pdf('analysis/PCA_qsmoothNorm.pdf', width = 24, height = 12)
 plotter(PCA_qsmooth, plot_title = 'qsmooth normalization')
 dev.off()
 
 
 
-pdf('analysis/PCA_qnorm.pdf', width = 12, height = 12)
+pdf('analysis/PCA_qnorm.pdf', width = 24, height = 12)
 plotter(PCA_qnorm, plot_title = 'Quantile Normalization')
 dev.off()
 
