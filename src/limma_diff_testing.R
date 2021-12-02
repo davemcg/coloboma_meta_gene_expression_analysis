@@ -1,5 +1,5 @@
 library(edgeR)
-ngs_counts <- combat_d
+ngs_counts <- qsmooth_counts
 colnames(ngs_counts) <- colnames(ngs_counts) %>% gsub('_.*|.CEL.*','',.)
 #d_zed <- DGEList(ngs_counts)
 #d_zed <- calcNormFactors(d_zed)
@@ -9,7 +9,7 @@ sample_meta_D <- sample_meta %>% filter(Sample %in% colnames(ngs_counts)) %>%
   unique()
 
 # remove low expression genes from consideration
-cutoff <- 1
+cutoff <- 3
 drop <- which(apply((ngs_counts), 1, max) < cutoff) #which(apply(cpm(d_zed), 1, max) < cutoff)
 d <- ngs_counts[-drop,]
 dim(d) # number of genes left

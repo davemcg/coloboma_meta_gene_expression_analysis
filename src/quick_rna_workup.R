@@ -95,9 +95,9 @@ rna_processor <- function(meta, organism, countsFromAbundance = 'no'){
   out
 }
 
-human <- rna_processor(sample_meta_rnaseq, 'Human', 'no')
-mouse <- rna_processor(sample_meta_rnaseq, 'Mouse', 'no')
-zebrafish <- rna_processor(sample_meta_rnaseq, 'Zebrafish', 'no')
+human <- rna_processor(sample_meta_rnaseq, 'Human', 'scaledTPM')
+mouse <- rna_processor(sample_meta_rnaseq, 'Mouse', 'scaledTPM')
+zebrafish <- rna_processor(sample_meta_rnaseq, 'Zebrafish', 'scaledTPM')
 
 # merge mouse and human data
 same <- human$counts %>% as_tibble(rownames = 'Gene') %>%
@@ -126,6 +126,8 @@ row.names(same2) <- same2$Gene
 same2 <- same2[,!grepl('Gene',colnames(same2))] %>% data.frame()
 same2 <- same2[complete.cases(same2),]
 
+#
+same_log <- log2(same2 + 1)
 
 # normalize with voom
 colData <- colnames(same2) %>% as_tibble() %>% dplyr::rename(Sample = value) %>%
@@ -139,7 +141,10 @@ colnames(mm) <- c('After','Before','During','DR','OF','Mouse','Zebrafish')
 y <- voom(same2, mm, plot = T)
 
 same_voom <- y$E
+#same_voom <- same_log
+
 # add microarray
+
 load('data/microarray_table.Rdata')
 same_voom <- same_voom %>% as_tibble(rownames = 'Gene') %>%
   left_join(microarray_table %>% as_tibble(rownames = 'Gene') %>%
@@ -149,6 +154,33 @@ same_voom <- same_voom %>% data.frame()
 row.names(same_voom) <- same_voom$Gene
 same_voom <- same_voom[,-1]
 same_voom <- same_voom[complete.cases(same_voom),]
+
+# sva
+colnames(same_voom) <- colnames(same_voom) %>% gsub('_.*|.CEL.*','',.)
+colData <- colnames(same_voom) %>%
+  as_tibble() %>%
+  dplyr::rename(Sample = value) %>%
+  left_join(sample_meta %>% dplyr::select(Sample:Fusion, -Other) %>% unique())
+colData <- data.frame(colData)
+row.names(colData) <- colData$Sample
+
+# remove low expression genes from consideration
+cutoff <- 3
+drop <- which(apply((same_voom), 1, max) < cutoff) #which(apply(cpm(d_zed), 1, max) < cutoff)
+same_voom <- same_voom[-drop,]
+dim(same_voom) # number of genes left
+
+
+mm <- model.matrix(~0  + colData$Fusion + colData$Organism + colData$Technology)
+colnames(mm) <- c('After', 'Before','During', 'Mouse','Zebrafish','RNAseq')
+
+num_sv <- sva::num.sv(same_voom, mm, method="leek")
+mod0 = model.matrix(~1, data=colData)
+sv_obj <- sva::sva(as.matrix(same_voom), mm, mod0,n.sv=num_sv)
+
+same_sva_norm <- removeBatchEffect(same_voom, covariates = sv_obj$sv)
+
+
 
 # rank norm
 same_rank_norm <- apply(same_voom, 2, function(y) rank(y) / length(y))
@@ -216,8 +248,8 @@ PCA_log <- run_PCA(same_voom, n_top_var = 2000)
 PCA_rank <- run_PCA(same_rank_norm, n_top_var = 2000)
 PCA_qsmooth <- run_PCA(same_qsmooth@qsmoothData, n_top_var = 2000)
 PCA_qnorm <- run_PCA(qnorm_counts, n_top_var =2000)
+PCA_sva <- run_PCA(same_sva_norm, n_top_var = 2000)
 
-x <- run_PCA(cor_vals, n_top_var = 2000)
 save(same, same_voom, same_rank_norm, same_qsmooth, file = 'data/microarray_NGS_objects.Rdata')
 
 
