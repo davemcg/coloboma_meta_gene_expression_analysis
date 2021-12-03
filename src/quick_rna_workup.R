@@ -22,6 +22,11 @@ register(MulticoreParam(2))
 working_dir <- '~/data/coloboma_meta_gene_expression/salmon_quant/'
 files <- list.files(path=working_dir,recursive=TRUE,pattern='quant.sf', full.names = TRUE)
 
+
+# adjust metadata to classify stages in three categories:
+## before fusion
+## during fusion
+## after fusion
 sample_meta <- read_tsv('data/sample_info2.tsv') %>%
   mutate(Paper = case_when(grepl('MTAB', Accession) ~ 'Patel - Sowden',
                            Accession == 'GSE109501' ~ 'Cao - Chen',
@@ -39,7 +44,8 @@ sample_meta <- read_tsv('data/sample_info2.tsv') %>%
                             Stage == 'E7' ~ 'After',
                             Stage == '32hpf' ~ 'Before',
                             Stage == '48hpf' ~ 'During',
-                            Stage == '56hpf' ~ 'After'))
+                            Stage == '56hpf' ~ 'After'),
+         Section = gsub('OFM','OF',Section))
 sample_meta_rnaseq <- read_tsv('data/sample_info2.tsv') %>% filter(!is.na(Run))%>%
   mutate(Paper = case_when(grepl('MTAB', Accession) ~ 'Patel - Sowden',
                            Accession == 'GSE109501' ~ 'Cao - Chen',
@@ -57,7 +63,8 @@ sample_meta_rnaseq <- read_tsv('data/sample_info2.tsv') %>% filter(!is.na(Run))%
                             Stage == 'E7' ~ 'After',
                             Stage == '32hpf' ~ 'Before',
                             Stage == '48hpf' ~ 'During',
-                            Stage == '56hpf' ~ 'After'))
+                            Stage == '56hpf' ~ 'After'),
+         Section = gsub('OFM','OF',Section))
 
 rna_processor <- function(meta, organism, countsFromAbundance = 'no'){
 
@@ -69,6 +76,8 @@ rna_processor <- function(meta, organism, countsFromAbundance = 'no'){
     filter(sample %in% sample_meta_rnaseq_org$Sample) %>%
     pull(value)
   anno <- fread(org_files[1])
+  # zebrafish fasta not from gencode (they don't make)
+  ## so have to do a custom data ingress to get the tx <-> gene name table
   if (organism == 'Zebrafish'){
     zf_tx <- read_tsv('~/git/coloboma_meta_gene_expression_analysis/data/Danio_rerio.GRCz11.release104.cdna.info.txt.gz', col_names = FALSE)
     zf_tx_info <- zf_tx %>% separate(X1, into = c('tx','type','chromosome','gene','gene_biotype','transcript_biotype', 'gene_symbol', 'description'), sep =' ') %>%
@@ -106,12 +115,15 @@ same <- human$counts %>% as_tibble(rownames = 'Gene') %>%
   data.frame()
 row.names(same) <- same$Gene
 same <- same[,-1] %>% data.frame()
-same <- same[complete.cases(same),]
+same <- same[complete.cases(same),] # remove NA
+
+########################################################
 # now merge in zebrafish data
 ## grab human <-> zf gene table
 hcop <- read_tsv('data/human_zebrafish_hcop_fifteen_column.txt.gz')
 ## collapse duplicate ZF gene names by summing
 ## e.g. abca4a and abca4b are all combined together into abca4
+## that's what the group_by -> summarise steps are doing
 zf_counts_human_gene_names <- zebrafish$counts %>%
   as_tibble(rownames = 'zebrafish_ensembl_gene') %>%
   mutate(zebrafish_ensembl_gene = gsub('\\.\\d+','', zebrafish_ensembl_gene)) %>%
@@ -120,91 +132,73 @@ zf_counts_human_gene_names <- zebrafish$counts %>%
   group_by(human_symbol) %>%
   summarise(across(where(is.numeric), sum))
 
+## now join the human/mouse zebrafish data
 same$Gene <- row.names(same)
 same2 <- same %>% left_join(zf_counts_human_gene_names, by = c('Gene' = 'human_symbol'))
 row.names(same2) <- same2$Gene
 same2 <- same2[,!grepl('Gene',colnames(same2))] %>% data.frame()
 same2 <- same2[complete.cases(same2),]
 
-#
+#####################################################################
+
 same_log <- log2(same2 + 1)
 
-# normalize with voom
-colData <- colnames(same2) %>% as_tibble() %>% dplyr::rename(Sample = value) %>%
-  left_join(sample_meta_rnaseq %>% dplyr::select(Sample:Fusion, -Other) %>% unique())
-colData <- data.frame(colData)
-row.names(colData) <- colData$Sample
-colData$Section <- gsub('OFM','OF',colData$Section)
+## normalize with voom (replaces log norm)
+# colData <- colnames(same2) %>% as_tibble() %>% dplyr::rename(Sample = value) %>%
+#   left_join(sample_meta_rnaseq %>% dplyr::select(Sample:Fusion, -Other) %>% unique())
+# colData <- data.frame(colData)
+# row.names(colData) <- colData$Sample
+# colData$Section <- gsub('OFM','OF',colData$Section)
+#
+# mm <- model.matrix(~0  + colData$Fusion  + colData$Section + colData$Organism)
+# colnames(mm) <- c('After','Before','During','DR','OF','Mouse','Zebrafish')
+# y <- voom(same2, mm, plot = T)
+#
+# same_voom <- y$E
 
-mm <- model.matrix(~0  + colData$Fusion  + colData$Section + colData$Organism)
-colnames(mm) <- c('After','Before','During','DR','OF','Mouse','Zebrafish')
-y <- voom(same2, mm, plot = T)
-
-same_voom <- y$E
-#same_voom <- same_log
+same_norm <- same_log
 
 # add microarray
-
 load('data/microarray_table.Rdata')
-same_voom <- same_voom %>% as_tibble(rownames = 'Gene') %>%
+colnames(microarray_table) <- colnames(microarray_table) %>% gsub('_.*|.CEL.*','',.)
+same_norm <- same_norm %>% as_tibble(rownames = 'Gene') %>%
   left_join(microarray_table %>% as_tibble(rownames = 'Gene') %>%
               mutate(Gene = toupper(Gene)))
 
-same_voom <- same_voom %>% data.frame()
-row.names(same_voom) <- same_voom$Gene
-same_voom <- same_voom[,-1]
-same_voom <- same_voom[complete.cases(same_voom),]
-
-# sva
-colnames(same_voom) <- colnames(same_voom) %>% gsub('_.*|.CEL.*','',.)
-colData <- colnames(same_voom) %>%
-  as_tibble() %>%
-  dplyr::rename(Sample = value) %>%
-  left_join(sample_meta %>% dplyr::select(Sample:Fusion, -Other) %>% unique())
-colData <- data.frame(colData)
-row.names(colData) <- colData$Sample
-
-# remove low expression genes from consideration
-cutoff <- 3
-drop <- which(apply((same_voom), 1, max) < cutoff) #which(apply(cpm(d_zed), 1, max) < cutoff)
-same_voom <- same_voom[-drop,]
-dim(same_voom) # number of genes left
-
-
-mm <- model.matrix(~0  + colData$Fusion + colData$Organism + colData$Technology)
-colnames(mm) <- c('After', 'Before','During', 'Mouse','Zebrafish','RNAseq')
-
-num_sv <- sva::num.sv(same_voom, mm, method="leek")
-mod0 = model.matrix(~1, data=colData)
-sv_obj <- sva::sva(as.matrix(same_voom), mm, mod0,n.sv=num_sv)
-
-same_sva_norm <- removeBatchEffect(same_voom, covariates = sv_obj$sv)
+same_norm <- same_norm %>% data.frame()
+row.names(same_norm) <- same_norm$Gene
+same_norm <- same_norm[,-1]
+same_norm <- same_norm[complete.cases(same_norm),]
+################################################################################
 
 
 
 # rank norm
-same_rank_norm <- apply(same_voom, 2, function(y) rank(y) / length(y))
+same_rank_norm <- apply(same_norm, 2, function(y) rank(y) / length(y))
+########################################
 
 # qsmooth norm
-## smooth across species for now
-qsmooth_factors <- same_voom %>%
+## smooth across each fusion / setion (OF vs not OF)
+qsmooth_factors <- same_norm %>%
   colnames() %>%
   enframe() %>%
   mutate(Sample = case_when(grepl('CEL', value) ~ str_extract(value, 'GSM\\d+'),
                             TRUE ~ value)) %>%
-  left_join(sample_meta %>% dplyr::select(Sample, Accession, Organism, Fusion) %>% unique(),
+  left_join(sample_meta %>% dplyr::select(Sample, Accession, Organism, Fusion, Section) %>% unique(),
             by = 'Sample') %>%
-  pull(Fusion)
-qsmooth_batch <- same_voom %>%
-  colnames() %>%
-  enframe() %>%
-  mutate(Sample = case_when(grepl('CEL', value) ~ str_extract(value, 'GSM\\d+'),
-                            TRUE ~ value)) %>%
-  left_join(sample_meta %>% dplyr::select(Sample, Accession, Fusion, Technology) %>% unique(),
-            by = 'Sample') %>%
-  pull(Accession)
-# same_qsmooth <- qsmooth(same_voom, group_factor = qsmooth_factors, batch = qsmooth_batch)
-same_qsmooth <- qsmooth(same_voom, group_factor = qsmooth_factors)
+  mutate(S2 = case_when(Section == 'OF' ~ 'OF', TRUE ~ 'Retina'),
+         FS = paste(Fusion, S2, sep = '_')) %>%
+  pull(FS)
+# qsmooth_batch <- same_norm %>%
+#   colnames() %>%
+#   enframe() %>%
+#   mutate(Sample = case_when(grepl('CEL', value) ~ str_extract(value, 'GSM\\d+'),
+#                             TRUE ~ value)) %>%
+#   left_join(sample_meta %>% dplyr::select(Sample, Accession, Fusion, Technology) %>% unique(),
+#             by = 'Sample') %>%
+#   pull(Accession)
+# same_qsmooth <- qsmooth(same_norm, group_factor = qsmooth_factors, batch = qsmooth_batch)
+same_qsmooth <- qsmooth(same_norm, group_factor = qsmooth_factors)
 
 qsmooth_counts <- same_qsmooth@qsmoothData
 colnames(qsmooth_counts) <- colnames(qsmooth_counts) %>% gsub('_.*|.CEL.*','',.)
@@ -212,15 +206,17 @@ qsmooth_counts %>%
   as_tibble(rownames = 'Gene') %>%
   pivot_longer(-Gene, names_to = 'Sample', values_to = 'log2(Counts)') %>%
   #filter(Sample %in% colData$Sample) %>%
-  left_join(sample_meta) %>% ggplot(aes(x=`log2(Counts)`, color = Technology)) +
+  left_join(sample_meta) %>% ggplot(aes(x=`log2(Counts)`, color = Technology, group = Sample)) +
   geom_density() +
-  facet_wrap(~Fusion)
+  facet_wrap(~Fusion) +
+  cowplot::theme_cowplot() +
+  geom_vline(xintercept = 3)
 #####################################################################################
 
-# straight quantile norm
-qnorm <- preprocessCore::normalize.quantiles(as.matrix(same_voom)) %>% data.frame()
-colnames(qnorm) <- colnames(same_voom)
-row.names(qnorm) <- row.names(same_voom)
+# straight quantile norm across the entire dataset
+qnorm <- preprocessCore::normalize.quantiles(as.matrix(same_norm)) %>% data.frame()
+colnames(qnorm) <- colnames(same_norm)
+row.names(qnorm) <- row.names(same_norm)
 
 qnorm_counts <- qnorm
 colnames(qnorm_counts) <- colnames(qnorm_counts) %>% gsub('_.*|.CEL.*','',.)
@@ -228,10 +224,12 @@ qnorm_counts %>%
   as_tibble(rownames = 'Gene') %>%
   pivot_longer(-Gene, names_to = 'Sample', values_to = 'log2(Counts)') %>%
   #filter(Sample %in% colData$Sample) %>%
-  left_join(sample_meta) %>% ggplot(aes(x=`log2(Counts)`, color = Technology)) +
+  left_join(sample_meta) %>% ggplot(aes(x=`log2(Counts)`, color = Technology, group = Sample)) +
   geom_density() +
   facet_wrap(~Fusion)
-#################
+#####################################################
+
+
 
 run_PCA <- function(matrix, n_top_var = 2000){
   ntop = n_top_var
@@ -244,13 +242,13 @@ run_PCA <- function(matrix, n_top_var = 2000){
   PCA
 }
 
-PCA_log <- run_PCA(same_voom, n_top_var = 2000)
-PCA_rank <- run_PCA(same_rank_norm, n_top_var = 2000)
-PCA_qsmooth <- run_PCA(same_qsmooth@qsmoothData, n_top_var = 2000)
-PCA_qnorm <- run_PCA(qnorm_counts, n_top_var =2000)
-PCA_sva <- run_PCA(same_sva_norm, n_top_var = 2000)
+PCA_log <- run_PCA(same_norm[,sample_meta %>% filter(Section == 'OF') %>% pull(Sample) %>% unique()], n_top_var = 2000)
+PCA_rank <- run_PCA(same_rank_norm[,sample_meta %>% filter(Section == 'OF') %>% pull(Sample) %>% unique()], n_top_var = 2000)
+PCA_qsmooth <- run_PCA(ngs_counts[,sample_meta %>% filter(Section == 'OF') %>% pull(Sample) %>% unique()], n_top_var = 2000)
+PCA_qnorm <- run_PCA(qnorm_counts[,sample_meta %>% filter(Section == 'OF') %>% pull(Sample) %>% unique()], n_top_var =2000)
+#PCA_sva <- run_PCA(same_sva_norm, n_top_var = 2000)
 
-save(same, same_voom, same_rank_norm, same_qsmooth, file = 'data/microarray_NGS_objects.Rdata')
+save(same, same_norm, same_rank_norm, same_qsmooth, qnorm_counts, file = 'data/microarray_NGS_objects.Rdata')
 
 
 plotter <- function(PCA, plot_title = NA){
@@ -486,8 +484,6 @@ dev.off()
 pdf('analysis/PCA_qsmoothNorm.pdf', width = 24, height = 12)
 plotter(PCA_qsmooth, plot_title = 'qsmooth normalization')
 dev.off()
-
-
 
 pdf('analysis/PCA_qnorm.pdf', width = 24, height = 12)
 plotter(PCA_qnorm, plot_title = 'Quantile Normalization')
