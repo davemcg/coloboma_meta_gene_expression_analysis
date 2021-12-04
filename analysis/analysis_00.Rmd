@@ -1,0 +1,297 @@
+---
+title: "Analysis \"Template\""
+output: 
+  html_notebook:
+    theme: flatly
+    toc: true
+    toc_float: true
+    code_folding: hide
+---
+```{r, message=FALSE, message=FALSE, warning=FALSE}
+
+library(tidyverse)
+library(biomaRt)
+
+
+library(clusterProfiler)
+# Parallel
+library(BiocParallel)
+register(MulticoreParam(6))
+
+load('../data/NGS_processing.Rdata')
+load('../data/top_tables.Rdata')
+
+box_marker <- function(table, genes, section = c('OF','Retina')){
+  qsmooth_counts %>%
+    as_tibble(rownames = 'Gene') %>%
+    pivot_longer(-Gene, names_to = 'Sample', values_to = 'Expression') %>%
+    mutate(Sample = gsub('_.*|.CEL.*','',Sample)) %>%
+    left_join(sample_meta_D) %>%
+    mutate(S2 = case_when(Section == 'OF' ~ 'OF',TRUE ~ 'Retina')) %>%
+    filter(Gene %in% genes, S2 %in% section) %>%
+    #filter(Gene %in% row.names(top.table_OF_AD %>% head(10))) %>%
+    mutate(Fusion = factor(Fusion, levels = c('Before','During','After'))) %>%
+    ggplot(aes(x=Fusion, y=Expression, color = Organism, shape = Technology)) +
+    # geom_boxplot(aes(group = Fusion), color = 'Black', outlier.colour = NA) +
+    # geom_boxplot(aes(group = interaction(Organism,Fusion)), outlier.colour = NA) +
+    ggbeeswarm::geom_quasirandom(size = 3, alpha = 0.7) +
+    cowplot::theme_cowplot() +
+    facet_grid(~Gene + S2, scales = 'free_y') +
+    ggsci::scale_color_aaas() +
+    ylab('log2 (qn counts)') +
+    stat_summary(fun=mean, geom = 'line', aes(group = Organism))
+}
+
+volcano_maker <- function(df, 
+                          title="Volcano Plot", 
+                          pvalue='P.Value', 
+                          padj='adj.P.Val', 
+                          logFC='logFC', 
+                          gene_list = ''){
+  df$pvalue <- df[,pvalue]
+  df$log2FoldChange <- df[,logFC]
+  df$padj <- df[,padj]
+  df$Gene <- row.names(df)
+  df <- df[!is.na(df$pvalue),]
+  print(dim(df))
+
+  df <- df %>% mutate(Class = case_when(padj < 0.05 & abs(logFC) > 1~ "FDR < 0.05 & logFC > 1",
+                                        padj < 0.1 & abs(logFC) > 1 ~ 'FDR < 0.1 & logFC > 1',
+                                        TRUE ~ 'Not significant'))
+  df$GeneT <- df$Gene
+  if (gene_list == ''){
+    gene_list <- df %>% filter(padj < 0.05) %>% pull(Gene) %>% head(10)
+  }
+  df$Gene[!df$Gene %in% gene_list] <- ''
+
+  plot <- ggplot(data=df,aes(label=Gene, x = log2FoldChange, y = -log10(pvalue))) +
+    geom_point(aes(colour=Class)) +
+    scale_colour_manual(values=c("darkred", "red", "grey")) +
+    cowplot::theme_cowplot() +
+    geom_vline(aes(xintercept=-1),linetype="dotted") +
+    geom_vline(aes(xintercept=1),linetype="dotted") +
+    geom_vline(aes(xintercept=-2),linetype="dotted") +
+    geom_vline(aes(xintercept=2),linetype="dotted") +
+    geom_label_repel(max.overlaps = 100) +
+    xlab('logFC') + ylab('-log10(p value)') +
+    ggtitle(title) + cowplot::theme_cowplot()
+
+    plot
+}
+```
+# Overall Workflow
+
+![](../figs/coloboma_meta_workflow.drawio.svg)
+
+# Four Tests
+
+- During vs Before (OF)
+- During vs Before (Retina (all not OF))
+- During vs After (OF)
+- During vs After (Retina (all not OF))
+
+
+
+## During vs Before (OF)
+
+Negative means that expression is dropping from as the fissure goes from "before" to "during"
+
+### Volcano
+```{r}
+volcano_maker(top.table_OF_DB)
+```
+### Diff Table
+
+All genes with an FDR < 0.2
+
+```{r}
+top.table_OF_DB %>% as_tibble(rownames = 'Gene') %>% filter(adj.P.Val < 0.2) %>%  DT::datatable()
+```
+### Expression of top 4 genes across species (OF only samples)
+
+```{r, fig.width=6, fig.height=3}
+box_marker(top.table_OF_DB, 
+           genes = top.table_OF_DB %>% 
+             as_tibble(rownames = 'Gene') %>% 
+             filter(adj.P.Val < 0.05) %>% pull(Gene),
+           section = 'OF')
+```
+
+
+## After vs During (OF)
+
+Negative means that expression is dropping from as the fissure goes from "during" to "after"
+
+### Volcano
+```{r}
+volcano_maker(top.table_OF_AD)
+```
+### Diff Table
+
+All genes with an FDR < 0.1
+
+```{r}
+top.table_OF_AD %>% as_tibble(rownames = 'Gene') %>% filter(adj.P.Val < 0.1) %>%  DT::datatable()
+```
+### Expression of top 7 genes across species (OF only samples)
+
+```{r, fig.width=8, fig.height=3}
+box_marker(top.table_OF_AD, 
+           genes = top.table_OF_AD %>% 
+             as_tibble(rownames = 'Gene') %>% 
+             filter(adj.P.Val < 0.05) %>% pull(Gene) %>% 
+             head(7),
+           section = 'OF')
+```
+
+## Enrichment of OF genes (During -> After in OF)
+If we subtract diff genes that are diff in both, we *should* enrich for genes specific to the fissure process (and not just part of the retina differentatiion process).
+
+As we have a LOT of diff genes in the During -> After fissure test this may be helpful
+
+### Volcano
+```{r, fig.width=6, fig.height=4}
+volcano_maker(top.table_OF_AD, 
+              gene_list = top.table_OF_AD %>% 
+                as_tibble(rownames = 'Gene') %>% 
+                filter(adj.P.Val < 0.05) %>%
+                filter(!Gene %in% row.names(top.table_RETINA_AD %>% 
+                                              filter(adj.P.Val < 0.05))) %>% 
+                head(20) %>% 
+                pull(Gene))
+```
+
+### Table
+
+`r top.table_OF_AD %>% 
+                as_tibble(rownames = 'Gene') %>% 
+                filter(adj.P.Val < 0.05) %>%
+                filter(!Gene %in% row.names(top.table_RETINA_AD %>% 
+                                              filter(adj.P.Val < 0.05))) %>% nrow()` genes are unique to the OF process (in other words don't pass significance in the retina samples at the same stage). 
+```{r}
+top.table_OF_AD %>% 
+                as_tibble(rownames = 'Gene') %>% 
+                filter(adj.P.Val < 0.05) %>%
+                filter(!Gene %in% row.names(top.table_RETINA_AD %>% 
+                                              filter(adj.P.Val < 0.05))) %>% DT::datatable()
+```
+
+# Enrichment Analysis (GO and Pathway)
+
+## GSEA
+```{r, fig.width=5}
+all_genes <- bitr(top.table_OF_AD %>% as_tibble(rownames = 'Gene') %>% pull(Gene), fromType="SYMBOL", toType="ENTREZID", OrgDb="org.Hs.eg.db")
+all_genes <- all_genes %>% left_join(top.table_OF_AD %>% as_tibble(rownames = 'SYMBOL'), by = c('SYMBOL'))
+
+logFC <- all_genes$logFC
+names(logFC) <- all_genes$ENTREZID
+logFC <- na.omit(logFC)
+
+logFC = sort(logFC, decreasing = TRUE)
+
+gse <- gseGO(geneList=logFC,
+             ont ="ALL",
+             keyType = "ENTREZID",
+             pvalueCutoff = 0.05,
+             OrgDb = org.Hs.eg.db,
+             pAdjustMethod = "BH")
+dotplot(gse, showCategory=10, split=".sign") + facet_grid(.~.sign)
+```
+
+## GO Enrichment of OF sections, from During Fusion to After
+```{r}
+library(clusterProfiler)
+library(enrichplot)
+
+
+diff_genes <- top.table_OF_AD %>% as_tibble(rownames = 'Gene') %>% filter(adj.P.Val < 0.05)
+eg_diff_genes <- bitr(diff_genes$Gene, fromType="SYMBOL", toType="ENTREZID", OrgDb="org.Hs.eg.db")
+eg_diff_genes <- diff_genes %>% left_join(., eg_diff_genes, by = c('Gene' = 'SYMBOL'))
+eg_universe = bitr(top.table_OF_AD %>% as_tibble(rownames = 'Gene') %>% pull(Gene), fromType="SYMBOL", toType="ENTREZID", OrgDb="org.Hs.eg.db")
+
+
+egoOF_AD <- enrichGO(gene          = eg_diff_genes$ENTREZID,
+                  universe      = eg_universe$ENTREZID,
+                  OrgDb         = org.Hs.eg.db,
+                  ont           = "all",
+                  readable      = TRUE)
+
+diff_genes <- top.table_RETINA_AD %>% as_tibble(rownames = 'Gene') %>% filter(adj.P.Val < 0.05)
+eg_diff_genes <- bitr(diff_genes$Gene, fromType="SYMBOL", toType="ENTREZID", OrgDb="org.Hs.eg.db")
+eg_diff_genes <- diff_genes %>% left_join(., eg_diff_genes, by = c('Gene' = 'SYMBOL'))
+eg_universe = bitr(top.table_RETINA_AD %>% as_tibble(rownames = 'Gene') %>% pull(Gene), fromType="SYMBOL", toType="ENTREZID", OrgDb="org.Hs.eg.db")
+
+
+egoRETINA_AD <- enrichGO(gene          = eg_diff_genes$ENTREZID,
+                      universe      = eg_universe$ENTREZID,
+                      OrgDb         = org.Hs.eg.db,
+                      ont           = "all",
+                      readable      = TRUE)
+
+
+p1 <- dotplot(egoOF_AD, showCategory=30) + ggtitle("Dotplot for GO, OF")
+p1
+
+
+```
+
+### "CNET" Plot
+Relationships between related GO terms with shared genes
+```{r, fig.width=6, fig.height=4}
+geneList <- eg_diff_genes$logFC
+names(geneList) <- eg_diff_genes$Gene
+cnet <- cnetplot(egoOF_AD, foldChange = geneList) + scale_color_viridis_c(name = 'log2(FoldChange)')
+cnet
+```
+
+## Wikipathways
+```{r}
+# system("wget https://wikipathways-data.wmcloud.org/current/gmt/wikipathways-20211110-gmt-Homo_sapiens.gmt")
+wp2gene <- read.gmt('wikipathways-20211110-gmt-Homo_sapiens.gmt')
+wp2gene <- wp2gene %>% tidyr::separate(term, c("name","version","wpid","org"), "%")
+wpid2gene <- wp2gene %>% dplyr::select(wpid, gene) #TERM2GENE
+wpid2name <- wp2gene %>% dplyr::select(wpid, name) #TERM2NAME
+
+ewp <- enricher(eg_diff_genes$ENTREZID,
+                TERM2GENE = wpid2gene,
+                TERM2NAME = wpid2name,
+                pvalueCutoff = 0.1)
+
+ewp_plot <- dotplot(ewp, showCategory=30) + ggtitle("Dotplot for WikiPathways")
+ewp_plot
+```
+## OF, Before <-> During OF
+
+## GSEA
+```{r, fig.width=5}
+all_genes <- bitr(top.table_OF_DB %>% as_tibble(rownames = 'Gene') %>% pull(Gene), fromType="SYMBOL", toType="ENTREZID", OrgDb="org.Hs.eg.db")
+all_genes <- all_genes %>% left_join(top.table_OF_DB %>% as_tibble(rownames = 'SYMBOL'), by = c('SYMBOL'))
+
+logFC <- all_genes$logFC
+names(logFC) <- all_genes$ENTREZID
+logFC <- na.omit(logFC)
+
+logFC = sort(logFC, decreasing = TRUE)
+
+gse <- gseGO(geneList=logFC,
+             ont ="ALL",
+             keyType = "ENTREZID",
+             pvalueCutoff = 0.05,
+             OrgDb = org.Hs.eg.db,
+             pAdjustMethod = "BH")
+dotplot(gse, showCategory=10, split=".sign") + facet_grid(.~.sign)
+```
+
+## KEGG Pathway Enrichment
+```{r, fig.width=3}
+kk <- enrichKEGG(gene         = eg_diff_genes$ENTREZID, 
+                 universe = eg_universe$ENTREZID,
+                 organism     = 'hsa')
+dotplot(kk) + ggtitle("KEGG Pathway Enrichment") 
+```
+
+
+# Session Info
+```{r}
+devtools::session_info()
+```
