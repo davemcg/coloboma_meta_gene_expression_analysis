@@ -158,4 +158,4 @@ same_log <- log2(same2 + 1)
 
 same_norm <- same_log
 
-
+save(same, same_norm,sample_meta, file = 'data/NGS_processing.Rdata')
