@@ -82,7 +82,27 @@ volcano_maker <- function(df,
 # Overall Workflow
 
 ![](../figs/coloboma_meta_workflow.drawio.svg)
+# Samples
+```{r}
+sample_meta_D %>% 
+  group_by(Organism, Fusion, Section, Technology) %>% 
+  summarise(Count = n()) %>% 
+  ggplot(aes(x=Fusion,y=Count, fill = Organism, shape = Technology))  + 
+  geom_bar(stat='identity', position = position_dodge2()) + 
+  ggsci::scale_fill_jco() +
+  facet_wrap(~Section) +
+  cowplot::theme_cowplot()
 
+sample_meta_D %>% 
+  mutate(Section2 = case_when(Section == 'OF' ~ 'OF',TRUE ~ 'Retina')) %>%
+  group_by(Organism, Fusion, Section2, Technology) %>% 
+  summarise(Count = n()) %>% 
+  ggplot(aes(x=Fusion,y=Count, fill = Organism, shape = Technology))  + 
+  geom_bar(stat='identity', position = position_dodge2()) + 
+  ggsci::scale_fill_jco() +
+  facet_wrap(~Section2) +
+  cowplot::theme_cowplot()
+```
 # Four Tests
 
 - During vs Before (OF)
@@ -90,19 +110,17 @@ volcano_maker <- function(df,
 - During vs After (OF)
 - During vs After (Retina (all not OF))
 
-
-
 ## During vs Before (OF)
 
-Negative means that expression is dropping from as the fissure goes from "before" to "during"
+Negative means that expression is dropping from as the fissure goes from "before" to "during."
 
 ### Volcano
 ```{r}
-volcano_maker(top.table_OF_DB)
+volcano_maker(top.table_OF_DB, title = 'Optic Fissure - Before/During')
 ```
 ### Diff Table
 
-All genes with an FDR < 0.2
+All genes with an FDR < 0.2. Not very many. There are a limited number of samples *before* the fusion begins (and no human) compared to the other time points. 
 
 ```{r}
 top.table_OF_DB %>% as_tibble(rownames = 'Gene') %>% filter(adj.P.Val < 0.2) %>%  DT::datatable()
@@ -124,7 +142,10 @@ Negative means that expression is dropping from as the fissure goes from "during
 
 ### Volcano
 ```{r}
-volcano_maker(top.table_OF_AD)
+volcano_maker(top.table_OF_AD, 
+              title = 'Optic Fissure - Before/During',
+              gene_list = c(top.table_OF_AD %>% filter(logFC > 0) %>% head(5) %>% row.names(),
+                            top.table_OF_AD %>% filter(logFC < 0) %>% head(5) %>% row.names()))
 ```
 ### Diff Table
 
@@ -139,13 +160,13 @@ top.table_OF_AD %>% as_tibble(rownames = 'Gene') %>% filter(adj.P.Val < 0.1) %>%
 box_marker(top.table_OF_AD, 
            genes = top.table_OF_AD %>% 
              as_tibble(rownames = 'Gene') %>% 
-             filter(adj.P.Val < 0.05) %>% pull(Gene) %>% 
+             filter(adj.P.Val < 0.05, !grepl('HMG|H2A|UBB', Gene)) %>% pull(Gene) %>% 
              head(7),
            section = 'OF')
 ```
 
 ## Enrichment of OF genes (During -> After in OF)
-If we subtract diff genes that are diff in both, we *should* enrich for genes specific to the fissure process (and not just part of the retina differentatiion process).
+If we *subtract* diff genes that are diff in *both*, we should enrich for genes specific to the fissure process (and not just part of the retina differentatiion process).
 
 As we have a LOT of diff genes in the During -> After fissure test this may be helpful
 
@@ -178,7 +199,8 @@ top.table_OF_AD %>%
 
 # Enrichment Analysis (GO and Pathway)
 
-## GSEA
+## 
+###  GSEA
 ```{r, fig.width=5}
 all_genes <- bitr(top.table_OF_AD %>% as_tibble(rownames = 'Gene') %>% pull(Gene), fromType="SYMBOL", toType="ENTREZID", OrgDb="org.Hs.eg.db")
 all_genes <- all_genes %>% left_join(top.table_OF_AD %>% as_tibble(rownames = 'SYMBOL'), by = c('SYMBOL'))

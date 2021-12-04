@@ -8,7 +8,7 @@ ngs_counts <- qsmooth_counts # works best at producing most padj in OF temporal 
 
 sample_meta_D <- sample_meta %>% filter(Sample %in% colnames(ngs_counts)) %>%
   dplyr::select(Sample:Section, Layout:Fusion) %>%
-  mutate(S2 = case_when(Section == 'OF' ~ 'OF', TRUE ~ 'Retina')) %>%
+  mutate(S2 = case_when(Section == 'OF' ~ 'OF', TRUE ~ 'OC')) %>%
   unique()
 
 # remove low expression genes from consideration
@@ -88,15 +88,15 @@ fit_contrasts <- contrasts.fit(fit, contrast.matrix)
 ###################################################################
 
 efit <- eBayes(fit_contrasts)
-top.table_RETINA_AD <- topTable(efit, sort.by = "p", n = Inf, coef="After - During", adjust.method="BH")
-head(top.table_RETINA_AD, 20)
-top.table_RETINA_AD %>% filter(adj.P.Val<0.05) %>% dim()
+top.table_OC_AD <- topTable(efit, sort.by = "p", n = Inf, coef="After - During", adjust.method="BH")
+head(top.table_OC_AD, 20)
+top.table_OC_AD %>% filter(adj.P.Val<0.05) %>% dim()
 
-top.table_RETINA_DB <- topTable(efit, sort.by = "p", n = Inf, coef="During - Before")
-head(top.table_RETINA_DB, 20)
+top.table_OC_DB <- topTable(efit, sort.by = "p", n = Inf, coef="During - Before")
+head(top.table_OC_DB, 20)
 ####################################################################
 
-save(top.table_OF_AD, top.table_OF_DB, top.table_RETINA_AD, top.table_RETINA_DB, file = 'data/top_tables.Rdata')
+save(top.table_OF_AD, top.table_OF_DB, top.table_OC_AD, top.table_OC_DB, file = 'data/top_tables.Rdata')
 
 ##########
 # create counts by section | stage | paper | tech
@@ -173,7 +173,7 @@ write_tsv(ngs_counts_merge,'data/ngs_counts_merge.tsv.gz')
 
 
 # genes that are diff in After - During exclusive (by padj) in OF
-retina_AD_diff_genes <- top.table_RETINA_AD %>% as_tibble(rownames = 'Gene') %>% filter(adj.P.Val < 0.05) %>% pull(Gene)
+retina_AD_diff_genes <- top.table_OC_AD %>% as_tibble(rownames = 'Gene') %>% filter(adj.P.Val < 0.05) %>% pull(Gene)
 ## OF specific
 top.table_OF_AD %>% as_tibble(rownames = 'Gene') %>% filter(adj.P.Val < 0.05, !Gene %in% retina_AD_diff_genes)
 ## shared
@@ -181,6 +181,6 @@ top.table_OF_AD %>% as_tibble(rownames = 'Gene') %>% filter(adj.P.Val < 0.05, Ge
 
 
 # genes that are diff in During - Before exclusive (by padj) in OF
-retina_DB_diff_genes <- top.table_RETINA_DB %>% as_tibble(rownames = 'Gene') %>% filter(adj.P.Val < 0.05) %>% pull(Gene)
+retina_DB_diff_genes <- top.table_OC_DB %>% as_tibble(rownames = 'Gene') %>% filter(adj.P.Val < 0.05) %>% pull(Gene)
 top.table_OF_DB %>% as_tibble(rownames = 'Gene') %>% filter(adj.P.Val < 0.05, !Gene %in% retina_DB_diff_genes)
 top.table_OF_DB %>% as_tibble(rownames = 'Gene') %>% filter(adj.P.Val < 0.05, Gene %in% retina_DB_diff_genes)
