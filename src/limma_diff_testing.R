@@ -18,15 +18,16 @@ d <- ngs_counts[-drop,]
 dim(d) # number of genes left
 
 # filter down to OF (optic fissure) samples
-sample_meta_filter <- sample_meta_D %>% filter(S2 %in% 'OF')
+sample_meta_filter <- sample_meta_D #%>% filter(S2 %in% 'OF')
 d_filtered <- d[,sample_meta_filter$Sample]
 colData <- colnames(d_filtered) %>% as_tibble() %>% dplyr::rename(Sample = value) %>%  left_join(sample_meta_filter)
 colData <- data.frame(colData)
 row.names(colData) <- colData$Sample
 
 # build model, with organism and tech as covariates to regress out
+colData$Fusion <- paste(colData$Fusion, colData$S2, sep = '_')
 mm <- model.matrix(~0 + colData$Fusion + colData$Organism + colData$Technology)
-colnames(mm) <- c('After', 'Before','During', 'Mouse','Zebrafish','RNAseq')
+colnames(mm) <- c('AfterOC', 'AfterOF','BeforeOC', 'BeforeOF','DuringOC','DuringOF', 'Mouse','Zebrafish','RNAseq')
 
 # sva batch correction covariates (num_sv finds two for the OF datasets)
 num_sv <- num.sv(d_filtered,mm,method="leek")
@@ -37,66 +38,26 @@ sv_obj <- svaseq(as.matrix(d_filtered), mm, mod0, n.sv=num_sv)
 ## rough batch corrected expression
 cor_vals_OF <- removeBatchEffect(d_filtered, covariates = sv_obj$sv)
 
+colnames(sv_obj$sv) <- c('SVA1','SVA2')
 modSv = cbind(mm,sv_obj$sv)
-colnames(modSv)[7:8] <- c('SVA1','SVA2')
 
 fit <- lmFit(d_filtered, modSv)
-contrast.matrix = makeContrasts(During-Before, After-During,levels=modSv)
+contrast.matrix = makeContrasts(DuringOF-BeforeOF, AfterOF-DuringOF,levels=modSv)
 fit_contrasts <- contrasts.fit(fit, contrast.matrix)
 
 ###################################################################
 
 efit <- eBayes(fit_contrasts)
-top.table_OF_AD <- topTable(efit, sort.by = "p", n = Inf, coef="After - During", adjust.method="BH")
+top.table_OF_AD <- topTable(efit, sort.by = "p", n = Inf, coef="AfterOF - DuringOF", adjust.method="BH")
 head(top.table_OF_AD, 20)
 top.table_OF_AD %>% filter(adj.P.Val<0.05) %>% dim()
 
-top.table_OF_DB <- topTable(efit, sort.by = "p", n = Inf, coef="During - Before")
+top.table_OF_DB <- topTable(efit, sort.by = "p", n = Inf, coef="DuringOF - BeforeOF")
 head(top.table_OF_DB, 20)
+top.table_OF_DB %>% filter(adj.P.Val<0.05) %>% dim()
 ####################################################################
 
-
-
-# AGAIN!
-# filter down to retina samples (**not the OF**)
-sample_meta_filter <- sample_meta_D %>% filter(!S2 %in% 'OF')
-d_filtered <- d[,sample_meta_filter$Sample]
-colData <- colnames(d_filtered) %>% as_tibble() %>% dplyr::rename(Sample = value) %>%  left_join(sample_meta_filter)
-colData <- data.frame(colData)
-row.names(colData) <- colData$Sample
-
-# build model, with organism and tech as covariates to regress out
-mm <- model.matrix(~0 + colData$Fusion + colData$Organism + colData$Technology)
-colnames(mm) <- c('After', 'Before','During', 'Mouse','Zebrafish','RNAseq')
-
-# sva batch correction covariates (num_sv finds two again for the retina datasets)
-num_sv <- num.sv(d_filtered,mm,method="leek")
-print(num_sv)
-mod0 = model.matrix(~1, data=colData)
-sv_obj <- svaseq(as.matrix(d_filtered), mm, mod0, n.sv=num_sv)
-
-## rough batch corrected expression
-cor_vals_retina <- removeBatchEffect(d_filtered, covariates = sv_obj$sv)
-
-modSv = cbind(mm,sv_obj$sv)
-colnames(modSv)[7:8] <- c('SVA1','SVA2')
-
-fit <- lmFit(d_filtered, modSv)
-contrast.matrix = makeContrasts(During-Before, After-During,levels=modSv)
-fit_contrasts <- contrasts.fit(fit, contrast.matrix)
-
-###################################################################
-
-efit <- eBayes(fit_contrasts)
-top.table_OC_AD <- topTable(efit, sort.by = "p", n = Inf, coef="After - During", adjust.method="BH")
-head(top.table_OC_AD, 20)
-top.table_OC_AD %>% filter(adj.P.Val<0.05) %>% dim()
-
-top.table_OC_DB <- topTable(efit, sort.by = "p", n = Inf, coef="During - Before")
-head(top.table_OC_DB, 20)
-####################################################################
-
-save(top.table_OF_AD, top.table_OF_DB, top.table_OC_AD, top.table_OC_DB, file = 'data/top_tables.Rdata')
+save(top.table_OF_AD, top.table_OF_DB,  file = 'data/top_tables.Rdata')
 
 ##########
 # create counts by section | stage | paper | tech

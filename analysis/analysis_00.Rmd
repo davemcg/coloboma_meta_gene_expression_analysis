@@ -21,13 +21,13 @@ register(MulticoreParam(6))
 load('../data/NGS_processing.Rdata')
 load('../data/top_tables.Rdata')
 
-box_marker <- function(table, genes, section = c('OF','Retina')){
+box_marker <- function(table, genes, section = c('OF','OC')){
   qsmooth_counts %>%
     as_tibble(rownames = 'Gene') %>%
     pivot_longer(-Gene, names_to = 'Sample', values_to = 'Expression') %>%
     mutate(Sample = gsub('_.*|.CEL.*','',Sample)) %>%
     left_join(sample_meta_D) %>%
-    mutate(S2 = case_when(Section == 'OF' ~ 'OF',TRUE ~ 'Retina')) %>%
+    mutate(S2 = case_when(Section == 'OF' ~ 'OF',TRUE ~ 'OC')) %>%
     filter(Gene %in% genes, S2 %in% section) %>%
     #filter(Gene %in% row.names(top.table_OF_AD %>% head(10))) %>%
     mutate(Fusion = factor(Fusion, levels = c('Before','During','After'))) %>%
@@ -87,6 +87,7 @@ volcano_maker <- function(df,
 sample_meta_D %>% 
   group_by(Organism, Fusion, Section, Technology) %>% 
   summarise(Count = n()) %>% 
+   mutate(Fusion = factor(Fusion, levels = c('Before','During','After'))) %>%
   ggplot(aes(x=Fusion,y=Count, fill = Organism, shape = Technology))  + 
   geom_bar(stat='identity', position = position_dodge2()) + 
   ggsci::scale_fill_jco() +
@@ -94,7 +95,8 @@ sample_meta_D %>%
   cowplot::theme_cowplot()
 
 sample_meta_D %>% 
-  mutate(Section2 = case_when(Section == 'OF' ~ 'OF',TRUE ~ 'Retina')) %>%
+  mutate(Section2 = case_when(Section == 'OF' ~ 'OF',TRUE ~ 'OC')) %>%
+   mutate(Fusion = factor(Fusion, levels = c('Before','During','After'))) %>%
   group_by(Organism, Fusion, Section2, Technology) %>% 
   summarise(Count = n()) %>% 
   ggplot(aes(x=Fusion,y=Count, fill = Organism, shape = Technology))  + 
@@ -131,8 +133,14 @@ top.table_OF_DB %>% as_tibble(rownames = 'Gene') %>% filter(adj.P.Val < 0.2) %>%
 box_marker(top.table_OF_DB, 
            genes = top.table_OF_DB %>% 
              as_tibble(rownames = 'Gene') %>% 
-             filter(adj.P.Val < 0.05) %>% pull(Gene),
+             filter(adj.P.Val < 0.05) %>%head(6) %>% pull(Gene),
            section = 'OF')
+
+box_marker(top.table_OF_DB, 
+           genes = top.table_OF_DB %>% 
+             as_tibble(rownames = 'Gene') %>% 
+             filter(adj.P.Val < 0.05) %>%head(6) %>% pull(Gene),
+           section = 'OC')
 ```
 
 
