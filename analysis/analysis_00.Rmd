@@ -199,38 +199,27 @@ gse <- gseGO(geneList=logFC,
 dotplot(gse, showCategory=10, split=".sign") + facet_grid(.~.sign)
 ```
 
-## GO Enrichment of OF sections, from During Fusion to After
+### GO Enrichment 
 ```{r}
 library(clusterProfiler)
 library(enrichplot)
 
 
-diff_genes <- top.table_OF_AD %>% as_tibble(rownames = 'Gene') %>% filter(adj.P.Val < 0.05)
+diff_genes <- top.table_OF_DB %>% as_tibble(rownames = 'Gene') %>% filter(adj.P.Val < 0.05)
 eg_diff_genes <- bitr(diff_genes$Gene, fromType="SYMBOL", toType="ENTREZID", OrgDb="org.Hs.eg.db")
 eg_diff_genes <- diff_genes %>% left_join(., eg_diff_genes, by = c('Gene' = 'SYMBOL'))
-eg_universe = bitr(top.table_OF_AD %>% as_tibble(rownames = 'Gene') %>% pull(Gene), fromType="SYMBOL", toType="ENTREZID", OrgDb="org.Hs.eg.db")
+eg_universe = bitr(top.table_OF_DB %>% as_tibble(rownames = 'Gene') %>% pull(Gene), fromType="SYMBOL", toType="ENTREZID", OrgDb="org.Hs.eg.db")
 
 
-egoOF_AD <- enrichGO(gene          = eg_diff_genes$ENTREZID,
+egoOF_DB <- enrichGO(gene          = eg_diff_genes$ENTREZID,
                   universe      = eg_universe$ENTREZID,
                   OrgDb         = org.Hs.eg.db,
                   ont           = "all",
                   readable      = TRUE)
 
-diff_genes <- top.table_RETINA_AD %>% as_tibble(rownames = 'Gene') %>% filter(adj.P.Val < 0.05)
-eg_diff_genes <- bitr(diff_genes$Gene, fromType="SYMBOL", toType="ENTREZID", OrgDb="org.Hs.eg.db")
-eg_diff_genes <- diff_genes %>% left_join(., eg_diff_genes, by = c('Gene' = 'SYMBOL'))
-eg_universe = bitr(top.table_RETINA_AD %>% as_tibble(rownames = 'Gene') %>% pull(Gene), fromType="SYMBOL", toType="ENTREZID", OrgDb="org.Hs.eg.db")
 
 
-egoRETINA_AD <- enrichGO(gene          = eg_diff_genes$ENTREZID,
-                      universe      = eg_universe$ENTREZID,
-                      OrgDb         = org.Hs.eg.db,
-                      ont           = "all",
-                      readable      = TRUE)
-
-
-p1 <- dotplot(egoOF_AD, showCategory=30) + ggtitle("Dotplot for GO, OF")
+p1 <- dotplot(egoOF_DB, showCategory=30) + ggtitle("Dotplot for GO, OF")
 p1
 
 
@@ -241,7 +230,7 @@ Relationships between related GO terms with shared genes
 ```{r, fig.width=6, fig.height=4}
 geneList <- eg_diff_genes$logFC
 names(geneList) <- eg_diff_genes$Gene
-cnet <- cnetplot(egoOF_AD, foldChange = geneList) + scale_color_viridis_c(name = 'log2(FoldChange)')
+cnet <- cnetplot(egoOF_DB, foldChange = geneList) + scale_color_viridis_c(name = 'log2(FoldChange)')
 cnet
 ```
 

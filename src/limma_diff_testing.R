@@ -17,7 +17,7 @@ drop <- which(apply((ngs_counts), 1, max) < cutoff) #which(apply(cpm(d_zed), 1, 
 d <- ngs_counts[-drop,]
 dim(d) # number of genes left
 
-# filter down to OF (optic fissure) samples
+
 sample_meta_filter <- sample_meta_D #%>% filter(S2 %in% 'OF')
 d_filtered <- d[,sample_meta_filter$Sample]
 colData <- colnames(d_filtered) %>% as_tibble() %>% dplyr::rename(Sample = value) %>%  left_join(sample_meta_filter)
@@ -25,6 +25,7 @@ colData <- data.frame(colData)
 row.names(colData) <- colData$Sample
 
 # build model, with organism and tech as covariates to regress out
+# make fusion_Section (OF, OC) types for contrast in limma
 colData$Fusion <- paste(colData$Fusion, colData$S2, sep = '_')
 mm <- model.matrix(~0 + colData$Fusion + colData$Organism + colData$Technology)
 colnames(mm) <- c('AfterOC', 'AfterOF','BeforeOC', 'BeforeOF','DuringOC','DuringOF', 'Mouse','Zebrafish','RNAseq')
@@ -33,7 +34,7 @@ colnames(mm) <- c('AfterOC', 'AfterOF','BeforeOC', 'BeforeOF','DuringOC','During
 num_sv <- num.sv(d_filtered,mm,method="leek")
 print(num_sv)
 mod0 = model.matrix(~1, data=colData)
-sv_obj <- svaseq(as.matrix(d_filtered), mm, mod0, n.sv=num_sv)
+sv_obj <- sva(as.matrix(d_filtered), mm, mod0, n.sv=num_sv)
 
 ## rough batch corrected expression
 cor_vals_OF <- removeBatchEffect(d_filtered, covariates = sv_obj$sv)
@@ -42,7 +43,7 @@ colnames(sv_obj$sv) <- c('SVA1','SVA2')
 modSv = cbind(mm,sv_obj$sv)
 
 fit <- lmFit(d_filtered, modSv)
-contrast.matrix = makeContrasts(DuringOF-BeforeOF, AfterOF-DuringOF,levels=modSv)
+contrast.matrix = makeContrasts(DuringOF-BeforeOF, AfterOF-DuringOF, DuringOC-DuringOF, levels=modSv)
 fit_contrasts <- contrasts.fit(fit, contrast.matrix)
 
 ###################################################################
@@ -55,9 +56,13 @@ top.table_OF_AD %>% filter(adj.P.Val<0.05) %>% dim()
 top.table_OF_DB <- topTable(efit, sort.by = "p", n = Inf, coef="DuringOF - BeforeOF")
 head(top.table_OF_DB, 20)
 top.table_OF_DB %>% filter(adj.P.Val<0.05) %>% dim()
+
+top.table_During <- topTable(efit, sort.by = "p", n = Inf, coef="DuringOC - DuringOF", adjust.method="BH")
+head(top.table_During, 20)
+top.table_During %>% filter(adj.P.Val<0.05) %>% dim()
 ####################################################################
 
-save(top.table_OF_AD, top.table_OF_DB,  file = 'data/top_tables.Rdata')
+save(top.table_OF_AD, top.table_OF_DB, top.table_During, file = 'data/top_tables.Rdata')
 
 ##########
 # create counts by section | stage | paper | tech
