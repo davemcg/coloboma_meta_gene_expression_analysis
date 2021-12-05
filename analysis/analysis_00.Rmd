@@ -108,9 +108,9 @@ sample_meta_D %>%
 # Four Tests
 
 - During vs Before (OF)
-- During vs Before (Retina (all not OF))
+- During vs Before (OC (well... not OF))
 - During vs After (OF)
-- During vs After (Retina (all not OF))
+- During vs After (OC) (well... not OF))
 
 ## During vs Before (OF)
 
@@ -118,7 +118,10 @@ Negative means that expression is dropping from as the fissure goes from "before
 
 ### Volcano
 ```{r}
-volcano_maker(top.table_OF_DB, title = 'Optic Fissure - Before/During')
+volcano_maker(top.table_OF_DB, title = 'Optic Fissure - Before/During',
+              
+              gene_list = c(top.table_OF_DB %>% filter(logFC > 0) %>% head(5) %>% row.names(),
+                            top.table_OF_DB %>% filter(logFC < 0) %>% head(5) %>% row.names()))
 ```
 ### Diff Table
 
@@ -127,19 +130,19 @@ All genes with an FDR < 0.2. Not very many. There are a limited number of sample
 ```{r}
 top.table_OF_DB %>% as_tibble(rownames = 'Gene') %>% filter(adj.P.Val < 0.2) %>%  DT::datatable()
 ```
-### Expression of top 4 genes across species (OF only samples)
+### Expression of top 6 genes across species and stage
 
 ```{r, fig.width=6, fig.height=3}
 box_marker(top.table_OF_DB, 
            genes = top.table_OF_DB %>% 
              as_tibble(rownames = 'Gene') %>% 
-             filter(adj.P.Val < 0.05) %>%head(6) %>% pull(Gene),
+             filter(adj.P.Val < 0.05) %>% head(6) %>% pull(Gene),
            section = 'OF')
 
 box_marker(top.table_OF_DB, 
            genes = top.table_OF_DB %>% 
              as_tibble(rownames = 'Gene') %>% 
-             filter(adj.P.Val < 0.05) %>%head(6) %>% pull(Gene),
+             filter(adj.P.Val < 0.05) %>% head(6) %>% pull(Gene),
            section = 'OC')
 ```
 
@@ -168,50 +171,18 @@ top.table_OF_AD %>% as_tibble(rownames = 'Gene') %>% filter(adj.P.Val < 0.1) %>%
 box_marker(top.table_OF_AD, 
            genes = top.table_OF_AD %>% 
              as_tibble(rownames = 'Gene') %>% 
-             filter(adj.P.Val < 0.05, !grepl('HMG|H2A|UBB', Gene)) %>% pull(Gene) %>% 
+             filter(adj.P.Val < 0.05) %>% pull(Gene) %>% 
              head(7),
            section = 'OF')
 ```
 
-## Enrichment of OF genes (During -> After in OF)
-If we *subtract* diff genes that are diff in *both*, we should enrich for genes specific to the fissure process (and not just part of the retina differentatiion process).
-
-As we have a LOT of diff genes in the During -> After fissure test this may be helpful
-
-### Volcano
-```{r, fig.width=6, fig.height=4}
-volcano_maker(top.table_OF_AD, 
-              gene_list = top.table_OF_AD %>% 
-                as_tibble(rownames = 'Gene') %>% 
-                filter(adj.P.Val < 0.05) %>%
-                filter(!Gene %in% row.names(top.table_RETINA_AD %>% 
-                                              filter(adj.P.Val < 0.05))) %>% 
-                head(20) %>% 
-                pull(Gene))
-```
-
-### Table
-
-`r top.table_OF_AD %>% 
-                as_tibble(rownames = 'Gene') %>% 
-                filter(adj.P.Val < 0.05) %>%
-                filter(!Gene %in% row.names(top.table_RETINA_AD %>% 
-                                              filter(adj.P.Val < 0.05))) %>% nrow()` genes are unique to the OF process (in other words don't pass significance in the retina samples at the same stage). 
-```{r}
-top.table_OF_AD %>% 
-                as_tibble(rownames = 'Gene') %>% 
-                filter(adj.P.Val < 0.05) %>%
-                filter(!Gene %in% row.names(top.table_RETINA_AD %>% 
-                                              filter(adj.P.Val < 0.05))) %>% DT::datatable()
-```
-
 # Enrichment Analysis (GO and Pathway)
 
-## 
+## Before -> During
 ###  GSEA
 ```{r, fig.width=5}
-all_genes <- bitr(top.table_OF_AD %>% as_tibble(rownames = 'Gene') %>% pull(Gene), fromType="SYMBOL", toType="ENTREZID", OrgDb="org.Hs.eg.db")
-all_genes <- all_genes %>% left_join(top.table_OF_AD %>% as_tibble(rownames = 'SYMBOL'), by = c('SYMBOL'))
+all_genes <- bitr(top.table_OF_DB %>% as_tibble(rownames = 'Gene') %>% pull(Gene), fromType="SYMBOL", toType="ENTREZID", OrgDb="org.Hs.eg.db")
+all_genes <- all_genes %>% left_join(top.table_OF_DB %>% as_tibble(rownames = 'SYMBOL'), by = c('SYMBOL'))
 
 logFC <- all_genes$logFC
 names(logFC) <- all_genes$ENTREZID
