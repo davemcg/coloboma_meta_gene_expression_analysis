@@ -36,8 +36,11 @@ print(num_sv)
 mod0 = model.matrix(~1, data=colData)
 sv_obj <- sva(as.matrix(d_filtered), mm, mod0, n.sv=num_sv)
 
-## rough batch corrected expression
-cor_vals_OF <- removeBatchEffect(d_filtered, covariates = sv_obj$sv)
+## (rough) batch corrected expression
+### do NOT use for diff testing
+### only (maybe) for vis?
+sva_counts <- removeBatchEffect(d_filtered, covariates = sv_obj$sv)
+write_tsv(sva_counts, file = 'data/sva_counts.tsv.gz')
 
 colnames(sv_obj$sv) <- c('SVA1','SVA2')
 modSv = cbind(mm,sv_obj$sv)
@@ -51,14 +54,17 @@ fit_contrasts <- contrasts.fit(fit, contrast.matrix)
 efit <- eBayes(fit_contrasts)
 top.table_OF_AD <- topTable(efit, sort.by = "p", n = Inf, coef="AfterOF - DuringOF", adjust.method="BH")
 head(top.table_OF_AD, 20)
+write_tsv(top.table_OF_AD, file = 'data/top.table_OF_AD.tsv.gz')
 top.table_OF_AD %>% filter(adj.P.Val<0.05) %>% dim()
 
 top.table_OF_DB <- topTable(efit, sort.by = "p", n = Inf, coef="DuringOF - BeforeOF")
 head(top.table_OF_DB, 20)
+write_tsv(top.table_OF_DB, file = 'data/top.table_OF_DB.tsv.gz')
 top.table_OF_DB %>% filter(adj.P.Val<0.05) %>% dim()
 
 top.table_During <- topTable(efit, sort.by = "p", n = Inf, coef="DuringOC - DuringOF", adjust.method="BH")
 head(top.table_During, 20)
+write_tsv(top.table_During, file = 'data/top.table_OF_OC_During.tsv.gz')
 top.table_During %>% filter(adj.P.Val<0.05) %>% dim()
 ####################################################################
 
