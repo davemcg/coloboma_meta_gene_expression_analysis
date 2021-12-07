@@ -3,6 +3,7 @@ title: "Analysis Introduction"
 output: 
   html_notebook:
     theme: flatly
+    date: 2021-12-06
     toc: true
     toc_float: true
     code_folding: hide
@@ -16,10 +17,11 @@ load('../data/top_tables.Rdata')
 
 ```
 
+# 2021-12-06
 
 # Samples
 
-I have highly simplified the many different sections to .... two. So this is a discussion point as to whether this is biological relevant. Essentially the two sections are now the fissure and ... everything else. Which I'll call optic cup.
+I have highly simplified the many different sections to .... two. I assume this is biologically kosher? I mean I would assume that the DR/NR/TR is all kind of the same....compared to the fissure. My diff testing thus has two "sections" as the fissure and ... everything else. Which I'll call optic cup.
 
 ![](../figs/overview.png)
 
@@ -49,9 +51,15 @@ sample_meta_D %>%
 
 # Overall Workflow
 
-Partially for my benefit, partially for yours. The analysis ended up being a lot more complicated than I hoped, but it seems to work (in the sense that the results I think make biological sense). 
+Partially for my benefit, partially for yours. The analysis ended up being a lot more complicated than I hoped, but it seems to work (in the sense that the results, I think, make biological sense). 
 
 ![](../figs/coloboma_meta_workflow.drawio.svg)
+
+## Why do we need to do quantile norm?
+
+The first set of density plots (a) shows how the microarray count distribution is wildly different than the RNA-seq count distributions. The quantile norm "smooshes" them all together so the differential testing (which assumes fairly similar overall distributions) has a chance to work. 
+
+![](../figs/supFig01.svg)
 
 # Six sample "sets"
 
@@ -64,25 +72,27 @@ Partially for my benefit, partially for yours. The analysis ended up being a lot
     - during
     - after 
   
-2 ^ 6 (64) combinations of tests (e.g. OF After vs OC Before)
+2 ^ 6 (64) possible combinations of tests (e.g. OF After vs OC Before)
 
 The *three* most important ones are (in my opinion):
   - OF Before - During
   - OF During - After
   - OF During - OC During
   
-  
-# Three documents
+# Three analysis documents for the three tests above
 
-  - analysis_OF_BeforeDuring
-  - analysis_OF_AfterDuring
-  - analysis_OF_OC
+  - analysis_OF_BeforeDuring.html
+  - analysis_OF_AfterDuring.html (as of 2021-12-06, not made yet)
+  - analysis_OF_OC.html (as of 2021-12-06, not made yet)
   
 # Five data files
 
-  - ngs_counts_merge.tsv.gz (samples collapsed by technology, stage, and organism)
-  - 
-
+  - sva_counts_merge.tsv.gz (sample - gene counts collapsed (mean) by technology, stage, and organism)
+  - sva_counts.tsv.gz (all sample - gene NORMALIZED counts)
+  - top.table_OF_DB.tsv.gz (diff testing (logFC) for OF Before - During)
+  - top.table_OF_AD.tsv.gz (diff testing (logFC) for OF During - After)
+  - top.table_OF_OC_During.tsv.gz (diff testing (logFC) for OF vs OC at the During stage)
+  
 # Session Info
 ```{r}
 devtools::session_info()

@@ -1,5 +1,5 @@
 ---
-title: "OF: Before - During"
+title: "During: OF vs OC"
 output: 
   html_notebook:
     theme: flatly
@@ -9,12 +9,11 @@ output:
 ---
 
 ```{r, message=FALSE, message=FALSE, warning=FALSE}
-
 library(tidyverse)
 library(biomaRt)
 library(ggrepel)
-
 library(clusterProfiler)
+library(enrichplot)
 # Parallel
 library(BiocParallel)
 register(MulticoreParam(6))
@@ -28,29 +27,51 @@ sample_meta_D <- sample_meta %>% filter(Sample %in% colnames(sva_counts)) %>%
   mutate(S2 = case_when(Section == 'OF' ~ 'OF', TRUE ~ 'OC')) %>%
   unique()
 
-box_marker <- function(table, genes, section = c('OF','OC')){
+box_maker <- function(table, genes, section = c('OF','OC'), type = 'temporal'){
   if ('matrix' %in% class(table)){
     table <- table %>%
       as_tibble(rownames = 'Gene')
   }
-  table %>% 
-    pivot_longer(-Gene, names_to = 'Sample', values_to = 'Expression') %>%
-    mutate(Sample = gsub('_.*|.CEL.*','',Sample)) %>%
-    left_join(sample_meta_D) %>%
-    mutate(S2 = case_when(Section == 'OF' ~ 'OF',TRUE ~ 'OC')) %>%
-    filter(Gene %in% genes, S2 %in% section) %>%
-    #filter(Gene %in% row.names(top.table_OF_AD %>% head(10))) %>%
-    mutate(Fusion = factor(Fusion, levels = c('Before','During','After'))) %>%
-    mutate(OrgTech = paste(Organism, Technology, sep = '_')) %>% 
-    ggplot(aes(x=Fusion, y=Expression, color = Organism, shape = Technology)) +
-    # geom_boxplot(aes(group = Fusion), color = 'Black', outlier.colour = NA) +
-    # geom_boxplot(aes(group = interaction(Organism,Fusion)), outlier.colour = NA) +
-    ggbeeswarm::geom_quasirandom(size = 3, alpha = 0.7) +
-    cowplot::theme_cowplot() +
-    facet_grid(~Gene + S2, scales = 'free_y') +
-    ggsci::scale_color_aaas() +
-    ylab('log2 (corrected counts)') +
-    stat_summary(fun=mean, geom = 'line', aes(group = OrgTech, color = Organism))
+  if (type == 'temporal'){
+    plot <- table %>% 
+      pivot_longer(-Gene, names_to = 'Sample', values_to = 'Expression') %>%
+      mutate(Sample = gsub('_.*|.CEL.*','',Sample)) %>%
+      left_join(sample_meta_D) %>%
+      mutate(S2 = case_when(Section == 'OF' ~ 'OF',TRUE ~ 'OC')) %>%
+      filter(Gene %in% genes, S2 %in% section) %>%
+      #filter(Gene %in% row.names(top.table_OF_AD %>% head(10))) %>%
+      mutate(Fusion = factor(Fusion, levels = c('Before','During','After'))) %>%
+      mutate(OrgTech = paste(Organism, Technology, sep = '_')) %>% 
+      ggplot(aes(x=Fusion, y=Expression, color = Organism, shape = Technology)) +
+      # geom_boxplot(aes(group = Fusion), color = 'Black', outlier.colour = NA) +
+      # geom_boxplot(aes(group = interaction(Organism,Fusion)), outlier.colour = NA) +
+      ggbeeswarm::geom_quasirandom(size = 3, alpha = 0.7) +
+      cowplot::theme_cowplot() +
+      facet_grid(~Gene + S2, scales = 'free_y') +
+      ggsci::scale_color_aaas() +
+      ylab('log2 (corrected counts)') +
+      stat_summary(fun=mean, geom = 'line', aes(group = OrgTech, color = Organism)) }
+  else {
+    plot <- table %>% 
+      pivot_longer(-Gene, names_to = 'Sample', values_to = 'Expression') %>%
+      mutate(Sample = gsub('_.*|.CEL.*','',Sample)) %>%
+      left_join(sample_meta_D) %>%
+      mutate(S2 = case_when(Section == 'OF' ~ 'OF',TRUE ~ 'OC')) %>%
+      filter(Gene %in% genes, S2 %in% section) %>%
+      mutate(Fusion = factor(Fusion, levels = c('Before','During','After'))) %>%
+      filter(Fusion == 'During') %>% 
+      mutate(OrgTech = paste(Organism, Technology, sep = '_')) %>% 
+      ggplot(aes(x=S2, y=Expression, color = Organism, shape = Technology)) +
+      # geom_boxplot(aes(group = Fusion), color = 'Black', outlier.colour = NA) +
+      # geom_boxplot(aes(group = interaction(Organism,Fusion)), outlier.colour = NA) +
+      ggbeeswarm::geom_quasirandom(size = 3, alpha = 0.7) +
+      cowplot::theme_cowplot() +
+      ggsci::scale_color_aaas() +
+      ylab('log2 (corrected counts)') +
+      xlab('Section') +
+      stat_summary(fun=mean, geom = 'line', aes(group = OrgTech, color = Organism)) + facet_wrap(~Gene)
+  }
+  plot
 }
 
 volcano_maker <- function(df, 
@@ -95,15 +116,14 @@ volcano_maker <- function(df,
 
 2021-12-06
 
-Negative means that expression is dropping from as the fissure goes from "before" to "during." This test is designed to identify which genes are changing *across time in the optic fissure region.*
-
+Negative means that expression is dropping from as the fissure goes from OF to OC This test is designed to identify which genes are changing between the OF and OC in the "during" stage.
 ## Volcano
 
-```{r, fig.width=4, fig.height=3}
-volcano_maker(top.table_OF_DB, title = 'Optic Fissure - Before/During',
+```{r, fig.width=4, fig.height=2}
+volcano_maker(top.table_During, title = 'During: OF vs OC',
               
-              gene_list = c(top.table_OF_DB %>% filter(logFC > 0) %>% head(5) %>% row.names(),
-                            top.table_OF_DB %>% filter(logFC < 0) %>% head(5) %>% row.names()))
+              gene_list = c(top.table_During %>% filter(logFC > 0) %>% head(7) %>% row.names(),
+                            top.table_During %>% filter(logFC < 0) %>% head(7) %>% row.names()))
 ```
 
 ## Diff Table
@@ -111,7 +131,7 @@ volcano_maker(top.table_OF_DB, title = 'Optic Fissure - Before/During',
 All genes with an FDR < 0.2. Not very many. There are a limited number of samples *before* the fusion begins (for the OF - no human) compared to the other time points. 
 
 ```{r}
-top.table_OF_DB %>% as_tibble(rownames = 'Gene') %>% filter(adj.P.Val < 0.1) %>%  DT::datatable()
+top.table_During %>% as_tibble(rownames = 'Gene') %>% filter(adj.P.Val < 0.1) %>%  DT::datatable()
 ```
 
 ## Expression of top 6 genes (FDR) across section and stage
@@ -120,17 +140,13 @@ Colored by organism. Each line is drawn for organism / technology (remember, mou
 
 
 ```{r, fig.width=6, fig.height=3}
-box_marker(sva_counts, 
-           genes = top.table_OF_DB %>% 
-             as_tibble(rownames = 'Gene') %>% 
-             filter(adj.P.Val < 0.05) %>% head(6) %>% pull(Gene),
-           section = 'OF')
+box_maker(sva_counts, 
+          genes = top.table_During %>% 
+            as_tibble(rownames = 'Gene') %>% 
+            filter(adj.P.Val < 0.05) %>% head(6) %>% pull(Gene),
+          section = c('OF','OC'), type = 'bloop')
 
-box_marker(sva_counts, 
-           genes = top.table_OF_DB %>% 
-             as_tibble(rownames = 'Gene') %>% 
-             filter(adj.P.Val < 0.05) %>% head(6) %>% pull(Gene),
-           section = 'OC')
+
 ```
 
 # Enrichment Analysis (GO, GSEA) Before -> During
@@ -142,8 +158,8 @@ GSEA uses a *ranked list* of genes by logFC. So the p values are not used in thi
 ### Dotplot
 
 ```{r, fig.width=7, fig.height=6}
-all_genes <- bitr(top.table_OF_DB %>% as_tibble(rownames = 'Gene') %>% pull(Gene), fromType="SYMBOL", toType="ENTREZID", OrgDb="org.Hs.eg.db")
-all_genes <- all_genes %>% left_join(top.table_OF_DB %>% as_tibble(rownames = 'SYMBOL'), by = c('SYMBOL'))
+all_genes <- bitr(top.table_During %>% as_tibble(rownames = 'Gene') %>% pull(Gene), fromType="SYMBOL", toType="ENTREZID", OrgDb="org.Hs.eg.db")
+all_genes <- all_genes %>% left_join(top.table_During %>% as_tibble(rownames = 'SYMBOL'), by = c('SYMBOL'))
 
 logFC <- all_genes$logFC
 names(logFC) <- all_genes$ENTREZID
@@ -164,7 +180,7 @@ gseF <- gse
 gseF@result <- rbind(gseF@result %>% arrange(NES) %>% head(20),
                      gseF@result %>% arrange(NES) %>% tail(20) %>% arrange(-NES)
 )
-dotplot(gseF, showCategory=15, split=".sign") + facet_grid(.~.sign) + cowplot::theme_cowplot()
+dotplot(gse, showCategory=15, split=".sign") + facet_grid(.~.sign) + cowplot::theme_cowplot()
 ```
 
 ### Table
@@ -179,14 +195,13 @@ gse@result %>% as_tibble() %>% arrange(-abs(NES)) %>% filter(p.adjust < 0.05) %>
 GO enrichment uses a *cutoff* between differentially expressed genes (FDR < 0.1 in this case) and everything else. 
 
 ```{r, fig.width=7}
-library(clusterProfiler)
-library(enrichplot)
 
 
-diff_genes <- top.table_OF_DB %>% as_tibble(rownames = 'Gene') %>% filter(adj.P.Val < 0.1)
+
+diff_genes <- top.table_During %>% as_tibble(rownames = 'Gene') %>% filter(adj.P.Val < 0.1)
 eg_diff_genes <- bitr(diff_genes$Gene, fromType="SYMBOL", toType="ENTREZID", OrgDb="org.Hs.eg.db")
 eg_diff_genes <- diff_genes %>% left_join(., eg_diff_genes, by = c('Gene' = 'SYMBOL'))
-eg_universe = bitr(top.table_OF_DB %>% as_tibble(rownames = 'Gene') %>% pull(Gene), fromType="SYMBOL", toType="ENTREZID", OrgDb="org.Hs.eg.db")
+eg_universe = bitr(top.table_During %>% as_tibble(rownames = 'Gene') %>% pull(Gene), fromType="SYMBOL", toType="ENTREZID", OrgDb="org.Hs.eg.db")
 
 
 egoOF_DB <- enrichGO(gene          = eg_diff_genes$ENTREZID,

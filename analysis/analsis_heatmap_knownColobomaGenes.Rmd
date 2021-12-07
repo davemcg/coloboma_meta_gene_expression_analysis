@@ -1,0 +1,128 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r, message=FALSE, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(biomaRt)
+library(ggrepel)
+library(clusterProfiler)
+library(enrichplot)
+# Parallel
+library(BiocParallel)
+register(MulticoreParam(6))
+
+load('../data/microarray_NGS_objects.Rdata')
+load('../data/top_tables.Rdata')
+sva_counts <- read_tsv('../data/sva_counts.tsv.gz')
+
+sample_meta_D <- sample_meta %>% filter(Sample %in% colnames(sva_counts)) %>%
+  dplyr::select(Sample:Section, Layout:Fusion) %>%
+  mutate(S2 = case_when(Section == 'OF' ~ 'OF', TRUE ~ 'OC')) %>%
+  unique()
+
+box_maker <- function(table, genes, section = c('OF','OC'), type = 'temporal'){
+  if ('matrix' %in% class(table)){
+    table <- table %>%
+      as_tibble(rownames = 'Gene')
+  }
+  if (type == 'temporal'){
+    plot <- table %>% 
+      pivot_longer(-Gene, names_to = 'Sample', values_to = 'Expression') %>%
+      mutate(Sample = gsub('_.*|.CEL.*','',Sample)) %>%
+      left_join(sample_meta_D) %>%
+      mutate(S2 = case_when(Section == 'OF' ~ 'OF',TRUE ~ 'OC')) %>%
+      filter(Gene %in% genes, S2 %in% section) %>%
+      #filter(Gene %in% row.names(top.table_OF_AD %>% head(10))) %>%
+      mutate(Fusion = factor(Fusion, levels = c('Before','During','After'))) %>%
+      mutate(OrgTech = paste(Organism, Technology, sep = '_')) %>% 
+      ggplot(aes(x=Fusion, y=Expression, color = Organism, shape = Technology)) +
+      # geom_boxplot(aes(group = Fusion), color = 'Black', outlier.colour = NA) +
+      # geom_boxplot(aes(group = interaction(Organism,Fusion)), outlier.colour = NA) +
+      ggbeeswarm::geom_quasirandom(size = 3, alpha = 0.7) +
+      cowplot::theme_cowplot() +
+      facet_grid(~Gene + S2, scales = 'free_y') +
+      ggsci::scale_color_aaas() +
+      ylab('log2 (corrected counts)') +
+      stat_summary(fun=mean, geom = 'line', aes(group = OrgTech, color = Organism)) }
+  else {
+    plot <- table %>% 
+      pivot_longer(-Gene, names_to = 'Sample', values_to = 'Expression') %>%
+      mutate(Sample = gsub('_.*|.CEL.*','',Sample)) %>%
+      left_join(sample_meta_D) %>%
+      mutate(S2 = case_when(Section == 'OF' ~ 'OF',TRUE ~ 'OC')) %>%
+      filter(Gene %in% genes, S2 %in% section) %>%
+      mutate(Fusion = factor(Fusion, levels = c('Before','During','After'))) %>%
+      filter(Fusion == 'During') %>% 
+      mutate(OrgTech = paste(Organism, Technology, sep = '_')) %>% 
+      ggplot(aes(x=S2, y=Expression, color = Organism, shape = Technology)) +
+      # geom_boxplot(aes(group = Fusion), color = 'Black', outlier.colour = NA) +
+      # geom_boxplot(aes(group = interaction(Organism,Fusion)), outlier.colour = NA) +
+      ggbeeswarm::geom_quasirandom(size = 3, alpha = 0.7) +
+      cowplot::theme_cowplot() +
+      ggsci::scale_color_aaas() +
+      ylab('log2 (corrected counts)') +
+      xlab('Section') +
+      stat_summary(fun=mean, geom = 'line', aes(group = OrgTech, color = Organism)) + facet_wrap(~Gene)
+  }
+  plot
+}
+
+volcano_maker <- function(df, 
+                          title="Volcano Plot", 
+                          pvalue='P.Value', 
+                          padj='adj.P.Val', 
+                          logFC='logFC', 
+                          gene_list = ''){
+  df$pvalue <- df[,pvalue]
+  df$log2FoldChange <- df[,logFC]
+  df$padj <- df[,padj]
+  df$Gene <- row.names(df)
+  df <- df[!is.na(df$pvalue),]
+  print(dim(df))
+  
+  df <- df %>% mutate(Class = case_when(padj < 0.05 & abs(logFC) > 1~ "FDR < 0.05 & logFC > 1",
+                                        padj < 0.1 & abs(logFC) > 1 ~ 'FDR < 0.1 & logFC > 1',
+                                        TRUE ~ 'Not significant'))
+  df$GeneT <- df$Gene
+  if (gene_list == ''){
+    gene_list <- df %>% filter(padj < 0.05) %>% pull(Gene) %>% head(10)
+  }
+  df$Gene[!df$Gene %in% gene_list] <- ''
+  
+  plot <- ggplot(data=df,aes(label=Gene, x = log2FoldChange, y = -log10(pvalue))) +
+    geom_point(aes(colour=Class)) +
+    scale_colour_manual(values=c("darkred", "red", "grey")) +
+    cowplot::theme_cowplot() +
+    geom_vline(aes(xintercept=-1),linetype="dotted") +
+    geom_vline(aes(xintercept=1),linetype="dotted") +
+    geom_vline(aes(xintercept=-2),linetype="dotted") +
+    geom_vline(aes(xintercept=2),linetype="dotted") +
+    geom_label_repel(max.overlaps = 100) +
+    xlab('logFC') + ylab('-log10(p value)') +
+    ggtitle(title) + cowplot::theme_cowplot()
+  
+  plot
+}
+```
+
+
+# Heatmap
+Run clustering on sample <-> sample distances
+
+```{r, fig.height=4, fig.width=5}
+
+ha_column = HeatmapAnnotation(df = data.frame(Cells = meta$Cells %>% factor(),
+                                                  Treatment = meta$Treatment %>% factor()),
+                                  col = list(Cells = c("Line A" = viridis::viridis(20)[6], 
+                                                       "Line B" = viridis::viridis(20)[14]),
+                                             Treatment = c("CTRL" = viridis::magma(20)[3], 
+                                                           "BLEACH" = viridis::magma(20)[7], 
+                                                           "UNICORN HORNS" = viridis::magma(20)[11],
+                                                           "POWERFUL FLASHLIGHT" =  viridis::magma(20)[15])))
+Heatmap(sampleDistMatrix, 
+        #top_annotation = ha_column,name = 'Distance',
+        col = circlize::colorRamp2(seq(0,1.4,0.1), 
+                                   colors = viridis::viridis(n = 15)))
+```
