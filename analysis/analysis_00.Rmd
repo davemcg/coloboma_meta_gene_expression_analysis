@@ -11,10 +11,9 @@ output:
 ```{r, message=FALSE, message=FALSE, warning=FALSE}
 
 library(tidyverse)
-
 load('../data/NGS_processing.Rdata')
 load('../data/top_tables.Rdata')
-
+sva_counts <- read_tsv('../data/sva_counts.tsv.gz')
 ```
 
 # 2021-12-06
@@ -27,6 +26,11 @@ I have highly simplified the many different sections to .... two. I assume this 
 
 
 ```{r}
+sample_meta_D <- sample_meta %>% filter(Sample %in% colnames(sva_counts)) %>%
+  dplyr::select(Sample:Section, Layout:Fusion) %>%
+  mutate(S2 = case_when(Section == 'OF' ~ 'OF', TRUE ~ 'OC')) %>%
+  unique()
+
 sample_meta_D %>% 
   group_by(Organism, Fusion, Section, Technology) %>% 
   summarise(Count = n()) %>% 

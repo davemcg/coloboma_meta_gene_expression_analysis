@@ -71,13 +71,13 @@ top.table_During %>% filter(adj.P.Val<0.05) %>% dim()
 save(top.table_OF_AD, top.table_OF_DB, top.table_During, file = 'data/top_tables.Rdata')
 
 ##########
-# create counts by section | stage | paper | tech
+# create counts by section | stage | paper | organism | tech
 #########
 sva_counts_merge_tidy <- sva_counts %>%
   as_tibble(rownames = 'Gene') %>%
   pivot_longer(-Gene, names_to = 'Sample', values_to = 'log2(norm counts)') %>%
   left_join(sample_meta_D) %>%
-  mutate(Group = glue::glue({'{S2} | {Fusion} | {Paper} | {Technology}'})) %>%
+  mutate(Group = glue::glue({'{S2}_{Fusion}_{Paper}_{Organism}_{Technology}'})) %>%
   group_by(Gene, Group) %>%
   summarise(`log2(norm counts)` = mean(`log2(norm counts)`))
 
