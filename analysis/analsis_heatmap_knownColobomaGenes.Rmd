@@ -119,3 +119,16 @@ make_hm(mean_sva_counts[,grepl('OC', colnames(mean_sva_counts))], c('TBX5','VAX2
 box_maker(sva_counts, genes = c('TBX5','VAX2','ALDH1A2', 'ALDH1A3', 'FOXC1','NTN1'), section = 'OF') + ggtitle("Temporal, by Section")
 box_maker(sva_counts, genes = c('TBX5','VAX2','ALDH1A2', 'ALDH1A3', 'FOXC1','NTN1'), type = 'stage') + ggtitle("OC vs OF, During Fusion")
 ```
+
+```{r}
+test3_logFC <- top.table_During %>% 
+  as_tibble(rownames = 'Gene') %>% 
+  dplyr::select(Gene, During = logFC) %>% 
+  left_join(top.table_OF_AD %>% as_tibble(rownames = 'Gene') %>% dplyr::select(Gene, AD=logFC)) %>% 
+  left_join(top.table_OF_DB %>% as_tibble(rownames = 'Gene') %>% dplyr::select(Gene, DB=logFC))
+
+
+logFC_hm <- function(genes){
+  
+}
+```
