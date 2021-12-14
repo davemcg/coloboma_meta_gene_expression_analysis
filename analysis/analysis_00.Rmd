@@ -79,6 +79,7 @@ The first set of density plots (a) shows how the microarray count distribution i
 2 ^ 6 (64) possible combinations of tests (e.g. OF After vs OC Before)
 
 The *three* most important ones are (in my opinion):
+
   - OF Before - During
   - OF During - After
   - OF During - OC During

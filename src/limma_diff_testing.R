@@ -71,6 +71,23 @@ top.table_During %>% filter(adj.P.Val<0.05) %>% dim()
 save(top.table_OF_AD, top.table_OF_DB, top.table_During, file = 'data/top_tables.Rdata')
 
 ##########
+# rename sample field by section | stage | paper | organism | tech | sample
+#########
+sva_counts_tidy <- sva_counts %>%
+  as_tibble(rownames = 'Gene') %>%
+  pivot_longer(-Gene, names_to = 'Sample', values_to = 'log2(norm counts)') %>%
+  left_join(sample_meta_D) %>%
+  mutate(Group = glue::glue({'{S2}_{Fusion}_{Paper}_{Organism}_{Technology}_{Sample}'})) %>%
+  dplyr::select(Gene, `log2(norm counts)`, Group)
+
+sva_counts_hm <- sva_counts_tidy %>%
+  pivot_wider(names_from = Group, values_from = `log2(norm counts)`)
+write_tsv(sva_counts_hm,'data/sva_counts_rename.tsv.gz')
+
+
+
+
+##########
 # create counts by section | stage | paper | organism | tech
 #########
 sva_counts_merge_tidy <- sva_counts %>%
@@ -84,3 +101,19 @@ sva_counts_merge_tidy <- sva_counts %>%
 sva_counts_merge <- sva_counts_merge_tidy %>%
   pivot_wider(names_from = Group, values_from = `log2(norm counts)`)
 write_tsv(sva_counts_merge %>% as_tibble(rownames = 'Gene'),'data/sva_counts_merge.tsv.gz')
+
+
+##########
+# create counts by section | stage
+#########
+sva_counts_superMerge_tidy <- sva_counts %>%
+  as_tibble(rownames = 'Gene') %>%
+  pivot_longer(-Gene, names_to = 'Sample', values_to = 'log2(norm counts)') %>%
+  left_join(sample_meta_D) %>%
+  mutate(Group = glue::glue({'{S2}_{Fusion}'})) %>%
+  group_by(Gene, Group) %>%
+  summarise(`log2(norm counts)` = mean(`log2(norm counts)`))
+
+sva_counts_superMerge <- sva_counts_superMerge_tidy %>%
+  pivot_wider(names_from = Group, values_from = `log2(norm counts)`)
+write_tsv(sva_counts_superMerge %>% as_tibble(rownames = 'Gene'),'data/sva_counts_superMerge.tsv.gz')

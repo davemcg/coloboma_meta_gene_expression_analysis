@@ -1,0 +1,182 @@
+---
+title: "Visualization"
+output: html_notebook
+---
+
+```{r, message=FALSE, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(ComplexHeatmap)
+# register(MulticoreParam(6))
+
+load('../data/microarray_NGS_objects.Rdata')
+load('../data/top_tables.Rdata')
+
+sva_counts <-  read_tsv('../data/sva_counts.tsv.gz')
+
+sva_rename_counts <- read_tsv('../data/sva_counts_rename.tsv.gz') %>% data.frame()
+row.names(sva_rename_counts) <- sva_rename_counts$Gene
+sva_rename_counts <- sva_rename_counts[,-1]
+
+mean_sva_SM_counts <- read_tsv('../data/sva_counts_superMerge.tsv.gz') %>% data.frame()
+row.names(mean_sva_SM_counts) <- mean_sva_SM_counts$Gene
+mean_sva_SM_counts <- mean_sva_SM_counts[,-1]
+
+mean_sva_counts <- read_tsv('../data/sva_counts_merge.tsv.gz') %>% data.frame()
+row.names(mean_sva_counts) <- mean_sva_counts$Gene
+mean_sva_counts <- mean_sva_counts[,-1]
+
+
+
+sample_meta_D <- sample_meta %>% filter(Sample %in% colnames(sva_counts)) %>%
+  dplyr::select(Sample:Section, Layout:Fusion) %>%
+  mutate(S2 = case_when(Section == 'OF' ~ 'OF', TRUE ~ 'OC')) %>%
+  unique()
+
+box_maker <- function(table, genes, section = c('OF','OC'), type = 'temporal'){
+  if ('A1CF' %in% row.names(table)){
+    table <- table %>%
+      as_tibble(rownames = 'Gene')
+  }
+  if (type == 'temporal'){
+    plot <- table %>% 
+      pivot_longer(-Gene, names_to = 'Sample', values_to = 'Expression') %>%
+      mutate(Sample = gsub('_.*|.CEL.*','',Sample)) %>%
+      left_join(sample_meta_D) %>%
+      mutate(S2 = case_when(Section == 'OF' ~ 'OF',TRUE ~ 'OC')) %>%
+      filter(Gene %in% genes, S2 %in% section) %>%
+      #filter(Gene %in% row.names(top.table_OF_AD %>% head(10))) %>%
+      mutate(Fusion = factor(Fusion, levels = c('Before','During','After'))) %>%
+      mutate(OrgTech = paste(Organism, Technology, sep = '_')) %>% 
+      ggplot(aes(x=Fusion, y=Expression, color = Organism, shape = Technology)) +
+      # geom_boxplot(aes(group = Fusion), color = 'Black', outlier.colour = NA) +
+      # geom_boxplot(aes(group = interaction(Organism,Fusion)), outlier.colour = NA) +
+      ggbeeswarm::geom_quasirandom(size = 3, alpha = 0.7) +
+      cowplot::theme_cowplot() +
+      facet_grid(~Gene + S2, scales = 'free_y') +
+      ggsci::scale_color_aaas() +
+      ylab('log2 (corrected counts)') +
+      stat_summary(fun=mean, geom = 'line', aes(group = OrgTech, color = Organism)) }
+  else {
+    plot <- table %>% 
+      pivot_longer(-Gene, names_to = 'Sample', values_to = 'Expression') %>%
+      mutate(Sample = gsub('_.*|.CEL.*','',Sample)) %>%
+      left_join(sample_meta_D) %>%
+      mutate(S2 = case_when(Section == 'OF' ~ 'OF',TRUE ~ 'OC')) %>%
+      filter(Gene %in% genes, S2 %in% section) %>%
+      mutate(Fusion = factor(Fusion, levels = c('Before','During','After'))) %>%
+      filter(Fusion == 'During') %>% 
+      mutate(OrgTech = paste(Organism, Technology, sep = '_')) %>% 
+      ggplot(aes(x=S2, y=Expression, color = Organism, shape = Technology)) +
+      # geom_boxplot(aes(group = Fusion), color = 'Black', outlier.colour = NA) +
+      # geom_boxplot(aes(group = interaction(Organism,Fusion)), outlier.colour = NA) +
+      ggbeeswarm::geom_quasirandom(size = 3, alpha = 0.7) +
+      cowplot::theme_cowplot() +
+      ggsci::scale_color_aaas() +
+      ylab('log2 (corrected counts)') +
+      xlab('Section') +
+      stat_summary(fun=mean, geom = 'line', aes(group = OrgTech, color = Organism)) + facet_wrap(~Gene)
+  }
+  plot
+}
+
+
+make_hm <- function(matrix, genes, scheme = 'A'){
+  # A is all samples 
+  # B is merged by  section | stage | paper | organism | tech
+  # C is merged by section | stage
+  if (scheme %in% c('A', 'B')){
+    if (scheme == 'A'){
+      info <- colnames(matrix)[1:ncol(matrix)] %>% gsub('\\.+','',.) %>% enframe() %>% separate(value, c('Section','Stage','Paper','Organism', 'Technology', 'Sample'), sep = '_')
+    } else {
+      info <- colnames(matrix)[1:ncol(matrix)] %>% gsub('\\.+','',.) %>% enframe() %>% separate(value, c('Section','Stage','Paper','Organism', 'Technology'), sep = '_')
+    }
+    
+    info$Stage <- factor(info$Stage, levels = c('Before','During','After'))
+    info$Paper <- factor(info$Paper, levels = c("BrownBrooks","CaoChen" ,"PatelSowden","RichardsonMoosajee"))
+    
+    ha_column = HeatmapAnnotation(df = data.frame(Section = factor(info$Section),
+                                                  Stage = factor(info$Stage, levels = c('Before','During','After')),
+                                                  Paper = factor(info$Paper),
+                                                  Organism = factor(info$Organism),
+                                                  Technology = factor(info$Technology)),
+                                  col = list(Section = c("OC" = viridis::viridis(20)[6] %>% unname(),
+                                                         "OF" = viridis::viridis(20)[14] %>% unname()),
+                                             Stage = c("Before" = viridis::magma(20)[3] %>% unname(),
+                                                       "During" = viridis::magma(20)[7] %>% unname(),
+                                                       "After" = viridis::magma(20)[11] %>% unname()),
+                                             Paper = c('PatelSowden' = pals::alphabet(26)[1] %>% unname(),
+                                                       'RichardsonMoosajee' = pals::alphabet(26)[2] %>% unname(),
+                                                       'CaoChen' = pals::alphabet(26)[3] %>% unname(),
+                                                       'BrownBrooks' = pals::alphabet(26)[4] %>% unname()),
+                                             Organism = c('Human' = pals::alphabet2(26)[1] %>% unname(),
+                                                          'Zebrafish' = pals::alphabet2(26)[2] %>% unname(),
+                                                          'Mouse' = pals::alphabet2(26)[3] %>% unname()),
+                                             Technology = c('RNASeq' = pals::alphabet2(26)[5] %>% unname(),
+                                                            'Microarray' = pals::alphabet2(26)[6] %>% unname())
+                                  ))
+  } else {
+    info <- colnames(matrix)[1:ncol(matrix)] %>% gsub('\\.+','',.) %>% enframe() %>% separate(value, c('Section','Stage'), sep = '_')
+    info$Stage <- factor(info$Stage, levels = c('Before','During','After'))
+    #info$Paper <- factor(info$Paper, levels = c("BrownBrooks","CaoChen" ,"PatelSowden","RichardsonMoosajee"))
+    
+    print(info)
+    ha_column = HeatmapAnnotation(df = data.frame(Section = factor(info$Section),
+                                                  Stage = factor(info$Stage, levels = c('Before','During','After'))),
+                                  
+                                  col = list(Section = c("OC" = viridis::viridis(20)[6] %>% unname(),
+                                                         "OF" = viridis::viridis(20)[14] %>% unname()),
+                                             Stage = c("Before" = viridis::magma(20)[3] %>% unname(),
+                                                       "During" = viridis::magma(20)[7] %>% unname(),
+                                                       "After" = viridis::magma(20)[11] %>% unname())
+                                  ))
+  }
+  
+  meaner <- function(matrix){
+    # matrix <- as.matrix(matrix)
+    matrixRM <- rowMeans(matrix)
+    as.matrix(matrix - matrixRM)
+  }
+  Heatmap(meaner(matrix[genes,]), 
+          column_split = c(info$Stage),
+          top_annotation = ha_column,
+          cluster_columns = FALSE)
+}
+
+```
+
+
+# Heatmap
+
+```{r, fig.height=3, fig.width=5}
+genes <- c('PAX6','VSX2','MAF','ALDH1A3', 'TENM3','ABCB6','FZD5', 'SALL2', 'RAX','CRYAA','IPO13')
+make_hm(sva_rename_counts[,grepl('OF', colnames(sva_rename_counts))], genes, scheme = 'A') 
+make_hm(sva_rename_counts[,grepl('OC', colnames(sva_rename_counts))], genes, scheme = 'A')
+
+
+# make_hm(mean_sva_counts[,grepl('OF', colnames(mean_sva_counts))], c('TBX5','VAX2','ALDH1A2', 'ALDH1A3', 'FOXC1','NTN1'), scheme = 'B') 
+# make_hm(mean_sva_counts[,grepl('OC', colnames(mean_sva_counts))], c('TBX5','VAX2','ALDH1A2', 'ALDH1A3', 'FOXC1','NTN1'), scheme = 'B')
+
+make_hm(mean_sva_SM_counts[,grepl('OF', colnames(mean_sva_SM_counts))], genes, scheme = 'C') 
+make_hm(mean_sva_SM_counts[,grepl('OC', colnames(mean_sva_SM_counts))], genes, scheme = 'C')
+```
+
+```{r, fig.width=12, fig.height = 4}
+box_maker(sva_counts, genes =genes, section = 'OF') + ggtitle("Temporal, by Section")
+```
+
+```{r, fig.width=6, fig.height = 4}
+box_maker(sva_counts, genes = genes, type = 'stage') + ggtitle("OC vs OF, During Fusion")
+```
+
+```{r}
+test3_logFC <- top.table_During %>% 
+  as_tibble(rownames = 'Gene') %>% 
+  dplyr::select(Gene, During = logFC) %>% 
+  left_join(top.table_OF_AD %>% as_tibble(rownames = 'Gene') %>% dplyr::select(Gene, AD=logFC)) %>% 
+  left_join(top.table_OF_DB %>% as_tibble(rownames = 'Gene') %>% dplyr::select(Gene, DB=logFC))
+
+
+logFC_hm <- function(genes){
+  
+}
+```

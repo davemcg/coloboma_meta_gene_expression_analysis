@@ -116,14 +116,15 @@ volcano_maker <- function(df,
 
 2021-12-06
 
-Negative means that expression is dropping from as the fissure goes from OF to OC This test is designed to identify which genes are changing between the OF and OC in the "during" stage.
+**Positive means higher expression in the OF relative to the OCn** This test is designed to identify which genes are changing between the OF and OC in the "during" stage.
+
 ## Volcano
 
-```{r, fig.width=4, fig.height=2}
+```{r, fig.width=5, fig.height=2}
 volcano_maker(top.table_During, title = 'During: OF vs OC',
               
-              gene_list = c(top.table_During %>% filter(logFC > 0) %>% head(7) %>% row.names(),
-                            top.table_During %>% filter(logFC < 0) %>% head(7) %>% row.names()))
+              gene_list = c(top.table_During %>% filter(logFC > 0) %>% head(12) %>% row.names(),
+                            top.table_During %>% filter(logFC < 0) %>% head(12) %>% row.names()))
 ```
 
 ## Diff Table
@@ -134,16 +135,16 @@ All genes with an FDR < 0.2. Not very many. There are a limited number of sample
 top.table_During %>% as_tibble(rownames = 'Gene') %>% filter(adj.P.Val < 0.1) %>%  DT::datatable()
 ```
 
-## Expression of top 6 genes (FDR) across section and stage
+## Expression of top 6 genes (by FDR) across section and stage
 
 Colored by organism. Each line is drawn for organism / technology (remember, mouse has both microarray and RNA-seq).
 
 
-```{r, fig.width=6, fig.height=3}
+```{r, fig.width=12, fig.height=6}
 box_maker(sva_counts, 
           genes = top.table_During %>% 
             as_tibble(rownames = 'Gene') %>% 
-            filter(adj.P.Val < 0.05) %>% head(6) %>% pull(Gene),
+            filter(adj.P.Val < 0.05) %>% head(24) %>% pull(Gene),
           section = c('OF','OC'), type = 'bloop')
 
 
@@ -153,7 +154,9 @@ box_maker(sva_counts,
 
 ##  GSEA
 
-GSEA uses a *ranked list* of genes by logFC. So the p values are not used in this situation. The *order* is. So the GSEA is useful in situations where there are very few differentially expressed genes. We see here the suppressed (negative expressed genes) terms are relating to mitosis / cell division. The activated gene terms are relating to melanocytes/pigment and ion channels.
+GSEA uses a *ranked list* of genes by logFC. So the p values are not used in this situation. The *order* is. So the GSEA is useful in situations where there are very few differentially expressed genes. 
+
+Positive terms (higher in OF) relate to collagen / extracellular matrix, basement membrane. Negative terms (higher in OC) relate to cell cycle. 
 
 ### Dotplot
 
@@ -183,6 +186,14 @@ gseF@result <- rbind(gseF@result %>% arrange(NES) %>% head(20),
 dotplot(gse, showCategory=15, split=".sign") + facet_grid(.~.sign) + cowplot::theme_cowplot()
 ```
 
+### Related terms
+
+So we can see "chunks" of terms that go together. We see several terms related to the structural components of the cell. As well as a set of cell cycle terms. 
+```{r, fig.width=5, fig.height=4}
+gsePT <- pairwise_termsim(gse)
+emapplot(gsePT)
+```
+
 ### Table
 
 So you can see the genes in the ontology term. The genes get "included" as enriched if GSEA deems them to be ranked unusually high.
@@ -194,17 +205,21 @@ gse@result %>% as_tibble() %>% arrange(-abs(NES)) %>% filter(p.adjust < 0.05) %>
 
 GO enrichment uses a *cutoff* between differentially expressed genes (FDR < 0.1 in this case) and everything else. 
 
+Loads of stuff relating to visual function and development. 
 ```{r, fig.width=7}
 
 
 
-diff_genes <- top.table_During %>% as_tibble(rownames = 'Gene') %>% filter(adj.P.Val < 0.1)
+diff_genes <- top.table_During %>% as_tibble(rownames = 'Gene') %>% filter(adj.P.Val < 0.1) %>% 
+  mutate(Group = case_when(logFC > 0 ~  'Higher in OF', TRUE ~ 'Higher in OC'))
 eg_diff_genes <- bitr(diff_genes$Gene, fromType="SYMBOL", toType="ENTREZID", OrgDb="org.Hs.eg.db")
 eg_diff_genes <- diff_genes %>% left_join(., eg_diff_genes, by = c('Gene' = 'SYMBOL'))
 eg_universe = bitr(top.table_During %>% as_tibble(rownames = 'Gene') %>% pull(Gene), fromType="SYMBOL", toType="ENTREZID", OrgDb="org.Hs.eg.db")
 
+eg_diff_gene_list <- eg_diff_genes$logFC
+names(eg_diff_gene_list) <- eg_diff_genes$ENTREZID
 
-egoOF_DB <- enrichGO(gene          = eg_diff_genes$ENTREZID,
+egoOF_OC <- enrichGO(gene          = eg_diff_genes$ENTREZID,
                      universe      = eg_universe$ENTREZID,
                      OrgDb         = org.Hs.eg.db,
                      ont           = "all",
@@ -212,7 +227,7 @@ egoOF_DB <- enrichGO(gene          = eg_diff_genes$ENTREZID,
 
 
 
-p1 <- dotplot(egoOF_DB, showCategory=20) + ggtitle("Dotplot for GO, OF")
+p1 <- dotplot(egoOF_OC, showCategory=20) + ggtitle("Dotplot for GO, OF vs OC")
 p1
 
 
@@ -221,12 +236,12 @@ p1
 
 So you can see the genes in the ontology term.
 ```{r}
-egoOF_DB@result %>% as_tibble() %>%  filter(p.adjust < 0.05) %>%  DT::datatable()
+egoOF_OC@result %>% as_tibble() %>%  filter(p.adjust < 0.05) %>%  DT::datatable()
 ```
 
-## "CNET" Plot
+### CNET Plot
 
-Relationships between related GO terms with shared genes
+Relationships between related GO terms with shared genes. Yellow means more expressed in the OF than the OC.
 ```{r, fig.width=6, fig.height=4}
 geneList <- eg_diff_genes$logFC
 names(geneList) <- eg_diff_genes$Gene
@@ -248,7 +263,7 @@ ewp <- enricher(eg_diff_genes$ENTREZID,
                 TERM2NAME = wpid2name,
                 pvalueCutoff = 0.1)
 
-ewp_plot <- dotplot(ewp, showCategory=30) + ggtitle("Dotplot for WikiPathways")
+ewp_plot <- dotplot(ewp, showCategory=10) + ggtitle("Dotplot for WikiPathways")
 ewp_plot
 ```
 ## Table
@@ -259,7 +274,7 @@ ewp@result %>% DT::datatable()
 
 # KEGG Pathway Enrichment
 
-```{r, fig.width=3}
+```{r}
 kk <- enrichKEGG(gene         = eg_diff_genes$ENTREZID, 
                  universe = eg_universe$ENTREZID,
                  organism     = 'hsa')
@@ -275,10 +290,9 @@ kk@result %>% DT::datatable()
 
 # My takeaway(s)
 
-1. The differential testing *seems* to work as the overall enriched GSEA found terms relate to processes that are involved in cell cycle, adhesion, and the visual cycle. 
-2. FGF18 and LUM are interesting (and go in opposite directions)
-3. FGF18 is a growth factor and has a recombinant drug (https://www.nature.com/articles/s41598-020-63216-z)
-4. LUM is interesting it is a lens associated extracellular matrix protein....is lens differentiation going on?
+1. Many many genes are different. 
+2. Many relate to retina development
+3. In the WikiPathways, the set relating to Neural Crest differentiation is intersting. You see MITF/DCT (melanosomes). MSX2 is a TF that is involved in craniofacial morphogenesis and limb pattern formation. This TF is downregulated in the fissure. 
 
 # Session Info
 
